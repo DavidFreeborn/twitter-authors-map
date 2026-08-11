@@ -1,0 +1,43 @@
+{
+  "matched_authors": 198326,
+  "matched_edges": 853133,
+  "full_network_nodes": 1984599,
+  "full_network_edges": 4472376,
+  "layout_mode": "matched_only_drl",
+  "connected_components": 10288,
+  "largest_component": 187095,
+  "isolates": 9627,
+  "with_topic_data": 198326,
+  "with_sentiment_data": 198326,
+  "with_emotion_data": 198326,
+  "complete_data": 198326,
+  "topic_labels": {
+    "0": "Marketing/Social",
+    "1": "AI Art Discourse",
+    "2": "AI Tools/Code",
+    "3": "Bard/LLMs",
+    "4": "Visual AI Art",
+    "5": "Bot/Spam",
+    "6": "Tech/Programming",
+    "7": "News/Updates",
+    "8": "NFT/Crypto",
+    "9": "Web3/DeFi",
+    "10": "General AI",
+    "11": "Trading/Invest"
+  },
+  "emotion_cols": [
+    "anger",
+    "anticipation",
+    "disgust",
+    "fear",
+    "joy",
+    "love",
+    "optimism",
+    "pessimism",
+    "sadness",
+    "surprise",
+    "trust"
+  ],
+  "layout_time_minutes": 21.000721613566082,
+  "note": "Layout computed using matched-to-matched edges only. Disconnected components positioned arbitrarily."
+}
