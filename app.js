@@ -79,6 +79,30 @@ const TOPIC_COLORS = [
     [0.60, 0.60, 0.60], [0.40, 0.76, 0.65], [0.99, 0.55, 0.38], [0.55, 0.63, 0.80]
 ];
 
+// Shared with blog_post_figures/styles/palette.json. Values are expressed as
+// exact 8-bit RGB fractions so WebGL points and CSS legends render identically.
+const SENTIMENT_COLORS = {
+    positive: [44/255, 162/255, 95/255],   // #2ca25f
+    neutral: [227/255, 181/255, 5/255],   // #e3b505
+    negative: [215/255, 48/255, 39/255]   // #d73027
+};
+
+const EMOTION_COLORS = {
+    anger: [0/255, 114/255, 178/255],
+    anticipation: [230/255, 159/255, 0/255],
+    disgust: [0/255, 158/255, 115/255],
+    fear: [204/255, 121/255, 167/255],
+    joy: [86/255, 180/255, 233/255],
+    love: [213/255, 94/255, 0/255],
+    optimism: [240/255, 228/255, 66/255],
+    pessimism: [51/255, 34/255, 136/255],
+    sadness: [136/255, 204/255, 238/255],
+    surprise: [170/255, 68/255, 153/255],
+    trust: [68/255, 170/255, 153/255]
+};
+
+const SCALE_LOW = [0.85, 0.85, 0.83];
+const EMOTION_SCALE_LOW = [0.86, 0.86, 0.90];
 const GREY = [0.35, 0.35, 0.42];
 
 // ============================================================================
@@ -421,12 +445,12 @@ function updateColors() {
                 const pos = node[F.positive];
                 const neg = node[F.negative];
                 if (pos !== null && pos !== undefined && neg !== null && neg !== undefined) {
-                    // Continuous diverging scale: red (-1) -> white (0) -> blue (+1)
+                    // Continuous diverging scale: red (-1) -> neutral yellow (0) -> green (+1)
                     const val = Math.max(-1, Math.min(1, (pos - neg) * 1.5)); // Scale up for visibility
                     color = divergingColor(val,
-                        [0.75, 0.22, 0.22],  // Negative (red)
-                        [0.85, 0.85, 0.88],  // Neutral (light grey)
-                        [0.20, 0.45, 0.75]   // Positive (blue)
+                        SENTIMENT_COLORS.negative,
+                        SENTIMENT_COLORS.neutral,
+                        SENTIMENT_COLORS.positive
                     );
                     validCount++;
                 }
@@ -437,16 +461,8 @@ function updateColors() {
                 if (val !== null && val !== undefined) {
                     // Continuous scale for individual dimensions
                     const t = Math.min(1, Math.max(0, val));
-                    if (sentType === 'positive') {
-                        // Light to saturated blue
-                        color = [0.75 - t * 0.55, 0.80 - t * 0.35, 0.90 - t * 0.15];
-                    } else if (sentType === 'negative') {
-                        // Light to saturated red
-                        color = [0.90 - t * 0.15, 0.75 - t * 0.50, 0.75 - t * 0.50];
-                    } else { // neutral
-                        // Light to saturated purple
-                        color = [0.85 - t * 0.25, 0.80 - t * 0.35, 0.90 - t * 0.20];
-                    }
+                    const target = SENTIMENT_COLORS[sentType];
+                    color = SCALE_LOW.map((channel, j) => channel + t * (target[j] - channel));
                     validCount++;
                 }
             }
@@ -475,13 +491,10 @@ function updateColors() {
             };
             const val = node[emotionMap[emotion]];
             if (val !== null && val !== undefined) {
-                // Blue (low) to red (high) diverging scale
+                // Sequential scale from pale neutral to the matching figure colour.
                 const t = Math.min(1, Math.max(0, val * 1.8)); // Scale for visibility
-                color = divergingColor(t * 2 - 1,  // Convert 0-1 to -1 to +1
-                    [0.20, 0.40, 0.70],  // Low (blue)
-                    [0.85, 0.85, 0.88],  // Mid (light grey)
-                    [0.80, 0.25, 0.25]   // High (red)
-                );
+                const target = EMOTION_COLORS[emotion];
+                color = EMOTION_SCALE_LOW.map((channel, j) => channel + t * (target[j] - channel));
                 validCount++;
             }
         }
@@ -559,14 +572,12 @@ function updateLegend(mode) {
 
         if (sentType === 'net') {
             gradientDiv.innerHTML = `
-                <div class="legend-gradient" style="background: linear-gradient(to right, ${rgb([0.75,0.22,0.22])}, ${rgb([0.85,0.85,0.88])}, ${rgb([0.20,0.45,0.75])})"></div>
+                <div class="legend-gradient" style="background: linear-gradient(to right, ${rgb(SENTIMENT_COLORS.negative)}, ${rgb(SENTIMENT_COLORS.neutral)}, ${rgb(SENTIMENT_COLORS.positive)})"></div>
                 <div class="legend-gradient-labels"><span>Negative</span><span>Neutral</span><span>Positive</span></div>
             `;
         } else {
-            const lowColor = sentType === 'positive' ? [0.75,0.80,0.90] : sentType === 'negative' ? [0.90,0.75,0.75] : [0.85,0.80,0.90];
-            const highColor = sentType === 'positive' ? [0.20,0.45,0.75] : sentType === 'negative' ? [0.75,0.25,0.25] : [0.60,0.45,0.70];
             gradientDiv.innerHTML = `
-                <div class="legend-gradient" style="background: linear-gradient(to right, ${rgb(lowColor)}, ${rgb(highColor)})"></div>
+                <div class="legend-gradient" style="background: linear-gradient(to right, ${rgb(SCALE_LOW)}, ${rgb(SENTIMENT_COLORS[sentType])})"></div>
                 <div class="legend-gradient-labels"><span>Low</span><span>High</span></div>
             `;
         }
@@ -595,12 +606,13 @@ function updateLegend(mode) {
         container.appendChild(noData);
     }
     else if (mode === 'emotion') {
-        // Gradient bar for emotion (blue to red)
+        // Sequential gradient ending at the selected emotion's figure colour.
+        const emotion = document.getElementById('emotion-select').value;
         const gradientDiv = document.createElement('div');
         gradientDiv.className = 'legend-gradient-wrap';
         gradientDiv.innerHTML = `
-            <div class="legend-gradient" style="background: linear-gradient(to right, ${rgb([0.20,0.40,0.70])}, ${rgb([0.85,0.85,0.88])}, ${rgb([0.80,0.25,0.25])})"></div>
-            <div class="legend-gradient-labels"><span>Low</span><span>Mid</span><span>High</span></div>
+            <div class="legend-gradient" style="background: linear-gradient(to right, ${rgb(EMOTION_SCALE_LOW)}, ${rgb(EMOTION_COLORS[emotion])})"></div>
+            <div class="legend-gradient-labels"><span>Low</span><span>High</span></div>
         `;
         container.appendChild(gradientDiv);
 
