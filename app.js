@@ -6,6 +6,8 @@
 // Data
 let nodes = [];
 let summary = {};
+const ASSET_VERSION = '20260821-reviewed-1';
+const versionedAsset = path => `${path}?v=${ASSET_VERSION}`;
 
 // Descriptive labels for the 21 largest Leiden-directed communities
 // (data/community_labels.json). Communities outside the top 21 keep their
@@ -201,7 +203,7 @@ async function init() {
         const [nodesResp, summaryResp, labelsResp] = await Promise.all([
             fetch('data/nodes.json'),
             fetch('data/build_summary.json'),
-            fetch('data/community_labels.json').catch(() => null)
+            fetch(versionedAsset('data/community_labels.json')).catch(() => null)
         ]);
 
         nodes = await nodesResp.json();
@@ -830,7 +832,7 @@ function authorDisplay(node) {
 function loadExamplePosts() {
     if (examplePostsState !== 'idle') return;
     examplePostsState = 'loading';
-    fetch('data/representative_posts.json')
+    fetch(versionedAsset('data/representative_posts.json'))
         .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
         .then(j => {
             examplePosts = j.posts || j;
