@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Twitter Authors Map</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23121218'/%3E%3Ccircle cx='5' cy='6' r='2' fill='%231f78b4'/%3E%3Ccircle cx='11' cy='5' r='1.6' fill='%23ff7f0e'/%3E%3Ccircle cx='9' cy='11' r='2.2' fill='%232ca02c'/%3E%3C/svg%3E">
     <style>
         :root {
             --bg-dark: #12121a;
@@ -64,6 +65,10 @@
             font-size: 16px;
             font-weight: 500;
             margin-bottom: var(--space-sm);
+        }
+
+        .info-note a {
+            color: var(--accent-hover);
         }
 
         .panel-scroll {
@@ -403,6 +408,143 @@
         }
 
         .hidden { display: none !important; }
+
+        /* ---- multi-colour swatch for the unlabelled long tail ---- */
+        .legend-swatch-multi {
+            background: linear-gradient(135deg, #6b6b7a 0 33%, #8a8a99 33% 66%, #55555f 66% 100%);
+        }
+
+        /* ---- search status ---- */
+        .search-status {
+            margin-top: 8px;
+            font-size: 11px;
+            line-height: 1.5;
+            color: var(--text-muted);
+        }
+        .search-status.found { color: var(--text); }
+        .search-status.missing { color: #ff8a8a; }
+
+        /* ---- selected-author panel ---- */
+        #author-panel {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 320px;
+            max-height: calc(100% - 32px);
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+            z-index: 20;
+        }
+
+        #author-panel .ap-close {
+            position: absolute;
+            top: 7px;
+            right: 8px;
+            z-index: 1;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 2px;
+        }
+        #author-panel .ap-close:hover { color: var(--text); }
+
+        #author-panel-body {
+            padding: 12px;
+            padding-right: 30px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+
+        .ap-author {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            word-break: break-all;
+        }
+
+        .ap-section {
+            margin-top: 10px;
+            padding-top: 9px;
+            border-top: 1px solid var(--border);
+        }
+
+        .ap-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 2px 0;
+        }
+
+        .ap-label { color: var(--text-muted); flex: 0 0 auto; }
+        .ap-value {
+            color: var(--text);
+            text-align: right;
+            font-family: var(--font-mono);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .ap-section-title,
+        .ap-example-title {
+            margin-bottom: 6px;
+            font-size: 10.5px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .ap-section-title span {
+            font-weight: 400;
+            letter-spacing: normal;
+            text-transform: none;
+        }
+
+        .ap-score-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 3px 14px;
+        }
+
+        .ap-sentiment-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .ap-score {
+            display: flex;
+            justify-content: space-between;
+            gap: 6px;
+            min-width: 0;
+            color: var(--text-muted);
+        }
+
+        .ap-score span:last-child {
+            color: var(--text);
+            font-family: var(--font-mono);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .ap-empty {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .ap-excerpt {
+            margin: 0;
+            padding: 8px 10px;
+            border-left: 2px solid var(--accent);
+            background: rgba(255, 255, 255, 0.025);
+            color: var(--text);
+            font-size: 11.5px;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
     </style>
 </head>
 <body>
@@ -502,6 +644,7 @@
                         <input type="text" class="search-input" id="search-input" placeholder="Author ID">
                         <button class="btn" onclick="searchAuthor()">Find</button>
                     </div>
+                    <div class="search-status" id="search-status"></div>
                 </div>
 
                 <!-- View -->
@@ -515,7 +658,11 @@
 
                 <!-- Info -->
                 <div class="info-note">
-                    Each point represents a Twitter user who posted about AI. A connection exists when one author retweets, quotes, or replies to another. Positions are computed using a force-directed layout algorithm that pulls connected authors together and pushes unconnected authors apart. Authors near each other share more direct or indirect connections. Point size reflects the author's total connection strength in the network.
+                    Each point represents a matched Twitter author in the corpus. A connection exists when one author retweets, quotes, or replies to another. Positions are computed using a force-directed layout algorithm that pulls connected authors together and pushes unconnected authors apart. Authors near each other share more direct or indirect connections. Point size reflects the author's total connection strength in the network.
+                </div>
+                <div class="info-note">
+                    Community labels describe prevalent post content, not every author or authors' identities. Provisional labels are shown as low confidence in the author panel.
+                    <br><a href="REVIEW_SUMMARY.md" target="_blank" rel="noopener">Open label review summary</a>
                 </div>
             </div>
         </aside>
@@ -534,6 +681,11 @@
             </div>
 
             <div id="tooltip"></div>
+
+            <aside id="author-panel" class="hidden">
+                <button class="ap-close" onclick="closeAuthorPanel()" title="Close (Esc)">&times;</button>
+                <div id="author-panel-body"></div>
+            </aside>
         </main>
     </div>
 

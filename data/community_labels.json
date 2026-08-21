@@ -1,0 +1,217 @@
+{
+ "note": "Descriptive labels for the 21 largest Leiden-directed communities (188,765 of 198,326 matched authors, 95.2%). Derived from class-based TF-IDF over the matched authors' own posts. Communities outside this set keep their numeric ID and are treated collectively as long-tail communities. Labels describe prevalent post content, not every post or the authors' identities, occupations, locations or intent. Provisional labels are explicitly marked.",
+ "order": [
+  1,
+  0,
+  3,
+  8,
+  2,
+  12,
+  4,
+  9,
+  16,
+  7,
+  10,
+  6,
+  5,
+  18,
+  14,
+  13,
+  15,
+  11,
+  17,
+  24,
+  28
+ ],
+ "communities": {
+  "1": {
+   "label": "General ChatGPT/AI discussion",
+   "display_label": "General ChatGPT Discussion",
+   "short_description": "Broad posts about ChatGPT and generative AI, including uses, limitations, social consequences, explainers and occasional generated-thread summaries.",
+   "confidence": "medium",
+   "review_status": "validated",
+   "n_authors": 44718,
+   "top_terms": "chatgpt, gpt, like, thread, just, generated, think, summary, people, compiled, saved, llms, use, new, human, llm, using, google, good, models"
+  },
+  "0": {
+   "label": "Anti-AI-art discourse",
+   "display_label": "Anti-AI-Art Discourse",
+   "short_description": "Posts opposing or questioning generative-AI art, especially around consent, copyright, authenticity and effects on creative work; a minority express support or argue against the criticism.",
+   "confidence": "high",
+   "review_status": "validated",
+   "n_authors": 41574,
+   "top_terms": "art, artists, like, just, people, artist, make, work, think, use, thing, generated, images, using, shit, really, want, know, human, used"
+  },
+  "3": {
+   "label": "General ChatGPT/AI debate",
+   "display_label": "General ChatGPT Debate",
+   "short_description": "Lexically diffuse posts debating ChatGPT and artificial intelligence, with criticism, practical uses, human-versus-machine framing and unclear cases.",
+   "confidence": "low",
+   "review_status": "provisional",
+   "n_authors": 17422,
+   "top_terms": "chatgpt, like, just, people, human, think, gpt, know, intelligence, make, chat, humans, going, use, artificial, time, need, good, world, real"
+  },
+  "8": {
+   "label": "AI-art and NFT posting",
+   "display_label": "AI-Art & NFT Posting",
+   "short_description": "Posts featuring AI art, Midjourney, prompts or generated images alongside NFT, collection, Web3 and community-tag vocabulary.",
+   "confidence": "high",
+   "review_status": "validated",
+   "n_authors": 12679,
+   "top_terms": "art, aiart, midjourney, aiartcommunity, collection, nft, like, gm, new, just, work, artist, artists, love, aiartwork, aiia, nfts, use, using, eth"
+  },
+  "2": {
+   "label": "ChatGPT for SEO and content marketing",
+   "display_label": "ChatGPT SEO/Content",
+   "short_description": "Posts about using ChatGPT and adjacent AI tools for copywriting, content production, search optimisation and marketing workflows.",
+   "confidence": "high",
+   "review_status": "validated",
+   "n_authors": 10348,
+   "top_terms": "chatgpt, content, use, google, gpt, tools, using, just, like, seo, help, writing, write, new, tool, search, time, chat, create, make"
+  },
+  "12": {
+   "label": "AI-token/launchpad and general-AI posting",
+   "display_label": "AI Tokens, Launchpads & AI",
+   "short_description": "A mixture of AI-branded token and launchpad promotion, bullish price vocabulary and broader posts about ChatGPT and artificial intelligence.",
+   "confidence": "medium",
+   "review_status": "validated",
+   "n_authors": 7502,
+   "top_terms": "price, profit, sell, aipad, chatgpt, buy, launchpad, agix, artificialintelligence, bullish, fet, crypto, future, new, like, use, technology, just, help, intelligence"
+  },
+  "4": {
+   "label": "AI/crypto launchpad and airdrop promotion",
+   "display_label": "AI/Crypto Launchpads",
+   "short_description": "Promotional posts about AI-branded crypto projects, launchpads, IDOs, token offers and airdrops, with some repeated or closely templated wording.",
+   "confidence": "high",
+   "review_status": "validated",
+   "n_authors": 7497,
+   "top_terms": "sfund, project, launchpad, algalonai, projects, category, idos, crypto, nft, new, token, join, algalontweet, ido, dyor, team, igo, future, seedify, blockchain"
+  },
+  "9": {
+   "label": "AI-blockchain/token promotion",
+   "display_label": "AI-Blockchain Promotion",
+   "short_description": "Promotional or investment-oriented posts about AI-linked blockchain, crypto-token, Web3 and metaverse projects.",
+   "confidence": "high",
+   "review_status": "validated",
+   "n_authors": 7256,
+   "top_terms": "man, blockchain, crypto, matrixainetwork, project, eth, web3, matrix, data, projects, check, fet, token, ocean, decentralized, metaverse, bot, gem, btc, network"
+  },
+  "16": {
+   "label": "Data-science/ML technology headlines",
+   "display_label": "Data Science/ML Headlines",
+   "short_description": "Posts dominated by data-science, machine-learning, big-data and technology headline or link-summary vocabulary, often with dense keyword lists.",
+   "confidence": "high",
+   "review_status": "validated",
+   "n_authors": 7132,
+   "top_terms": "machinelearning, artificialintelligence, bigdata, datascience, iot, ml, technology, python, chatgpt, intelligence, artificial, tech, data, deeplearning, analytics, dl, innovation, learning, coding, exclusive"
+  },
+  "7": {
+   "label": "AI-art/authenticity disputes",
+   "display_label": "AI-Art Authenticity Disputes",
+   "short_description": "Posts discussing AI art, attribution, authenticity and whether generated images are presented as human-made; stance is frequently unclear.",
+   "confidence": "medium",
+   "review_status": "validated",
+   "n_authors": 5490,
+   "top_terms": "art, like, people, just, artists, think, make, botprompt, generated, use, thing, really, good, human, artist, image, work, way, using, images"
+  },
+  "10": {
+   "label": "AI news and tech press coverage",
+   "display_label": "ChatGPT & AI/Tech News",
+   "short_description": "Posts circulating technology-press stories about ChatGPT, OpenAI, Microsoft Bing and Google's competitive response.",
+   "confidence": "high",
+   "review_status": "validated",
+   "n_authors": 4542,
+   "top_terms": "chatgpt, new, google, microsoft, intelligence, artificial, bing, like, tech, openai, use, just, using, data, technology, search, chatbot, human, help, gpt"
+  },
+  "6": {
+   "label": "Mixed AI art and ChatGPT discourse",
+   "display_label": "Mixed AI Art/ChatGPT",
+   "short_description": "No unique terms survive the c-TF-IDF: a mixture of AI-art talk and a weak ChatGPT-as-writing-tool register ('chatgpt write', 'asked chatgpt', drafting at work). Too diffuse to label more narrowly.",
+   "confidence": "low",
+   "review_status": "validated",
+   "n_authors": 4098,
+   "top_terms": "chatgpt, like, just, people, art, human, think, write, new, use, going, time, intelligence, make, know, bert, work, good, artificial, asked"
+  },
+  "5": {
+   "label": "Mixed NFT, AI-token and general-AI posting",
+   "display_label": "NFTs, AI Tokens & AI",
+   "short_description": "Mixed posts about NFT collections, minting, AI-linked tokens and general AI or ChatGPT topics; promotional content is present but not universal.",
+   "confidence": "medium",
+   "review_status": "validated",
+   "n_authors": 3607,
+   "top_terms": "llama, nft, art, bcube, nfts, just, new, like, project, love, mint, collection, chatgpt, discord, fam, crypto, community, join, cardano, aiinu"
+  },
+  "18": {
+   "label": "ChatGPT in education and teaching",
+   "display_label": "ChatGPT in Education",
+   "short_description": "Posts about ChatGPT in education and teaching, including classroom use, assessment, cheating, student writing and teaching practice.",
+   "confidence": "high",
+   "review_status": "validated",
+   "n_authors": 3281,
+   "top_terms": "chatgpt, students, education, edtech, teachers, use, writing, learning, teaching, student, using, new, tools, write, like, educators, think, text, classroom, need"
+  },
+  "14": {
+   "label": "India-linked ChatGPT/AI news",
+   "display_label": "India-Linked ChatGPT/AI News",
+   "short_description": "General ChatGPT, search and AI-news posts with some references to Indian institutions, public figures or cultural contexts. This is not evidence of author location.",
+   "confidence": "low",
+   "review_status": "provisional",
+   "n_authors": 2834,
+   "top_terms": "chatgpt, india, google, like, gpt, intelligence, use, new, just, artificial, indian, data, chat, time, using, know, read, human, make, world"
+  },
+  "13": {
+   "label": "ChatGPT discussion with regional-language markers",
+   "display_label": "ChatGPT + Regional-Language Markers",
+   "short_description": "General ChatGPT and AI posts with occasional regionally associated lexical markers. These markers do not establish author location or identity.",
+   "confidence": "low",
+   "review_status": "provisional",
+   "n_authors": 2699,
+   "top_terms": "chatgpt, like, just, people, intelligence, google, artificial, na, use, make, know, ba, gpt, chat, dey, using, dawn, africa, think, human"
+  },
+  "15": {
+   "label": "AI-art criticism and pop-culture mix",
+   "display_label": "AI-Art Criticism & Pop Culture",
+   "short_description": "A mixed set of AI-art criticism, general AI posts and pop-culture or music discussion; no single pop-culture reference generalises across the group.",
+   "confidence": "low",
+   "review_status": "provisional",
+   "n_authors": 2005,
+   "top_terms": "bert, like, art, mccracken, just, people, shit, think, make, generated, know, chatgpt, lol, real, music, using, thing, really, got, gerard"
+  },
+  "11": {
+   "label": "Anime AI art (Stable Diffusion)",
+   "display_label": "Anime AI Art/Stable Diffusion",
+   "short_description": "Posts about Stable Diffusion, NovelAI and waifu-diffusion anime image generation, including a substantial NSFW component.",
+   "confidence": "high",
+   "review_status": "validated",
+   "n_authors": 1245,
+   "top_terms": "aiart, stablediffusion, stablediffusionart, waifudiffusion, aiartwork, novelai, art, anime, aiartcommunity, like, waifu, girl, aiartworks, novelaidiffusion, findom, oppai, just, nsfwtwt, love, nsfw"
+  },
+  "17": {
+   "label": "Mixed/general ChatGPT discourse",
+   "display_label": "Mixed ChatGPT Usage",
+   "short_description": "No unique terms survive the c-TF-IDF. Strongly ChatGPT-centred but otherwise undifferentiated: usage reports, jokes, outage complaints and 'can it replace Google' - indistinguishable in wording from C1, C3 and C6.",
+   "confidence": "low",
+   "review_status": "validated",
+   "n_authors": 1166,
+   "top_terms": "chatgpt, like, just, gpt, people, think, use, using, time, chat, make, know, google, good, need, human, art, new, asked, really"
+  },
+  "24": {
+   "label": "Medical imaging and radiology AI",
+   "display_label": "Medical Imaging AI",
+   "short_description": "Posts about AI in radiology and medical imaging, including RSNA 2022 conference material and clinical or academic research topics.",
+   "confidence": "high",
+   "review_status": "validated",
+   "n_authors": 1060,
+   "top_terms": "radiology, rsna22, research, data, learn, healthcare, health, imaging, chatgpt, clinical, new, intelligence, artificial, ml, medical, cancer, check, learning, register, qureatrsna22"
+  },
+  "28": {
+   "label": "Mixed AI/creative-content posting",
+   "display_label": "Mixed AI/Creative Content",
+   "short_description": "Mixed AI-art, creative-writing, general-AI and occasional merchandise posts. Earlier merchandise-specific evidence was concentrated among few authors and does not generalise.",
+   "confidence": "low",
+   "review_status": "provisional",
+   "n_authors": 610,
+   "top_terms": "generated, fantasy, angelandspot, art, chatgpt, beautiful, book, postcard, new, nightcafe, writing, woman, bert, intelligence, just, artificial, writingcommunity, chat, poster, like"
+  }
+ }
+}
