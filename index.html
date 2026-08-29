@@ -236,6 +236,48 @@
             gap: var(--space-sm);
         }
 
+        .projection-switch {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3px;
+            padding: 3px;
+            background: #151520;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .projection-btn {
+            padding: 7px 8px;
+            color: var(--text-muted);
+            background: transparent;
+            border: 0;
+            border-radius: var(--radius);
+            font: 600 11px/1 var(--font-sans);
+            letter-spacing: 0.02em;
+            cursor: pointer;
+        }
+
+        .projection-btn:hover:not(:disabled) {
+            color: var(--text);
+            background: var(--bg-control);
+        }
+
+        .projection-btn.active {
+            color: var(--text);
+            background: #30304a;
+            box-shadow: inset 0 -2px 0 var(--accent);
+        }
+
+        .projection-btn:disabled {
+            cursor: wait;
+            opacity: 0.55;
+        }
+
+        .view-status {
+            color: var(--text-dim);
+            font: 10.5px/1.5 var(--font-mono);
+        }
+
         /* Legend */
         .legend {
             display: flex;
@@ -301,6 +343,82 @@
             width: 100%;
             height: 100%;
             display: block;
+            touch-action: none;
+        }
+
+        #interaction-hint {
+            position: absolute;
+            z-index: 10;
+            pointer-events: none;
+            color: var(--text-muted);
+            background: rgba(18, 18, 26, 0.76);
+            border: 1px solid rgba(76, 76, 100, 0.65);
+            backdrop-filter: blur(5px);
+        }
+
+        #projection-toolbar {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            z-index: 12;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px;
+            background: rgba(18, 18, 26, 0.82);
+            border: 1px solid rgba(76, 76, 100, 0.72);
+            border-radius: 7px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+            backdrop-filter: blur(6px);
+        }
+
+        #projection-toolbar .projection-switch {
+            grid-template-columns: 42px 42px;
+            padding: 0;
+            background: transparent;
+            border: 0;
+        }
+
+        #projection-toolbar .projection-btn {
+            padding: 7px 9px;
+        }
+
+        .canvas-tool-btn {
+            padding: 7px 8px;
+            color: var(--text-muted);
+            background: transparent;
+            border: 0;
+            border-radius: var(--radius);
+            font: 500 10.5px/1 var(--font-sans);
+            cursor: pointer;
+        }
+
+        .canvas-tool-btn:hover {
+            color: var(--text);
+            background: var(--bg-control);
+        }
+
+        #view-status {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            min-width: max-content;
+            padding: 4px 7px;
+            color: var(--text-dim);
+            background: rgba(18, 18, 26, 0.74);
+            border: 1px solid rgba(76, 76, 100, 0.55);
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        #interaction-hint {
+            left: 50%;
+            bottom: 18px;
+            transform: translateX(-50%);
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 10.5px;
+            white-space: nowrap;
         }
 
         /* Zoom Controls */
@@ -647,21 +765,12 @@
                     <div class="search-status" id="search-status"></div>
                 </div>
 
-                <!-- View -->
-                <div class="control-section">
-                    <h2>View</h2>
-                    <div class="btn-row">
-                        <button class="btn" onclick="resetView()">Reset</button>
-                        <button class="btn" onclick="fitToScreen()">Fit</button>
-                    </div>
-                </div>
-
                 <!-- Info -->
                 <div class="info-note">
-                    Each point represents a matched Twitter author in the corpus. A connection exists when one author retweets, quotes, or replies to another. Positions are computed using a force-directed layout algorithm that pulls connected authors together and pushes unconnected authors apart. Authors near each other share more direct or indirect connections. Point size reflects the author's total connection strength in the network.
+                    Each point represents a matched Twitter author. The 3D view is a structure-preserving network layout of the giant connected component (187,095 authors; 94.3%). Native 3D force depth is combined with the accepted 2D map's macro geometry through the weighted author network. Communities, topics, sentiment, emotion, label text and author attributes do not affect position. All authors remain available in the unchanged 2D view. Axes, orientation and absolute scale have no substantive meaning.
                 </div>
                 <div class="info-note">
-                    Community labels describe prevalent post content, not every author or authors' identities. Provisional labels are shown as low confidence in the author panel.
+                    Community labels describe prevalent post content, not every author or authors' identities. Full labels and validation confidence remain in the analysis files.
                     <br><a href="REVIEW_SUMMARY.md" target="_blank" rel="noopener">Open label review summary</a>
                 </div>
             </div>
@@ -669,6 +778,18 @@
 
         <main id="canvas-container">
             <canvas id="graph-canvas"></canvas>
+            <div id="projection-toolbar" aria-label="Network view controls">
+                <div class="projection-switch" role="group" aria-label="Network projection">
+                    <button class="projection-btn active" id="view-2d" type="button"
+                            aria-pressed="true" onclick="setViewMode('2d')">2D</button>
+                    <button class="projection-btn" id="view-3d" type="button"
+                            aria-pressed="false" onclick="setViewMode('3d')" disabled>3D</button>
+                </div>
+                <button class="canvas-tool-btn" type="button" onclick="resetView()">Reset</button>
+                <button class="canvas-tool-btn" type="button" onclick="fitToScreen()">Fit</button>
+                <div class="view-status" id="view-status" aria-live="polite">2D · accepted network layout</div>
+            </div>
+            <div id="interaction-hint">Drag to pan · Wheel to zoom</div>
 
             <div class="zoom-controls">
                 <button class="zoom-btn" onclick="zoomIn()" title="Zoom in">+</button>
@@ -690,6 +811,6 @@
     </div>
 
     <script src="https://unpkg.com/regl@2.1.0/dist/regl.min.js"></script>
-    <script src="app.js?v=20260821-reviewed-1"></script>
+    <script src="app.js?v=20260828-constrained-3d-1"></script>
 </body>
 </html>

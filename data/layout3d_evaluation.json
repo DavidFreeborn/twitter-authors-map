@@ -1,0 +1,106 @@
+{
+  "rendered_nodes": 187095,
+  "rendered_directed_edges": 851957,
+  "geometry": {
+    "axis_spans": [
+      2.1302322149276733,
+      1.8081449270248413,
+      2.148591995239258
+    ],
+    "axis_standard_deviations": [
+      0.338738078417061,
+      0.3232115988072844,
+      0.18211770030539826
+    ],
+    "covariance_eigenvalues": [
+      0.1176289362598251,
+      0.10170707406244064,
+      0.033041418742140435
+    ],
+    "covariance_eigenvalue_ratios": [
+      1.0,
+      0.8646433207368688,
+      0.280895328927882
+    ],
+    "robust_pca_axis_p90_absolute_extent": [
+      0.5387486862442804,
+      0.5769270725813487,
+      0.31116630520812555
+    ],
+    "robust_pca_axis_p90_extent_ratios": [
+      1.0,
+      1.070864927027882,
+      0.5775722765605705
+    ],
+    "central_95_percent_covariance_eigenvalues": [
+      0.10167373448788976,
+      0.0872991713853246,
+      0.029306000961321098
+    ],
+    "central_95_percent_covariance_eigenvalue_ratios": [
+      1.0,
+      0.8586206833557658,
+      0.2882357091428731
+    ],
+    "major_community_centroid_covariance_eigenvalues": [
+      0.16025659070092246,
+      0.11254971090821515,
+      0.01864018817676157
+    ],
+    "major_community_centroid_covariance_eigenvalue_ratios": [
+      1.0,
+      0.7023094052853035,
+      0.11631464325575643
+    ],
+    "radius": {
+      "p50": 0.43493884913663017,
+      "p90": 0.796610040785556,
+      "p99": 0.9529882549561777,
+      "p99.5": 0.999999993736255,
+      "p99.9": 1.1200870838576207,
+      "p100": 1.7902660314469914
+    }
+  },
+  "graph_separation": {
+    "sample_pairs": 150000,
+    "edge_distance": {
+      "p25": 0.04326859630317073,
+      "p50": 0.07577686466943981,
+      "p75": 0.14106249150943656,
+      "p90": 0.28121113014196353
+    },
+    "degree_matched_nonedge_distance": {
+      "p25": 0.32532773051904323,
+      "p50": 0.5100856727462693,
+      "p75": 0.8145178697231792,
+      "p90": 1.0157274961037945
+    },
+    "median_edge_to_nonedge_ratio": 0.14855713210187207,
+    "paired_edge_shorter_fraction": 0.90884,
+    "log_weight_distance_spearman": -0.10196213464692423
+  },
+  "local_neighbourhood": {
+    "sample_nodes": 6000,
+    "k": 15,
+    "graph_edge_fraction_among_layout_knn": 0.008833333333333334,
+    "overall_graph_edge_density": 4.786896221792157e-05,
+    "layout_knn_edge_enrichment_over_graph_density": 184.53154035635723,
+    "recall_of_available_graph_neighbours": 0.028482373172828892,
+    "same_community_fraction_among_layout_knn": 0.7019
+  },
+  "reference_2d_continuity": {
+    "sample_pairs": 149999,
+    "pair_distance_spearman": 0.9495786538321798,
+    "rigid_linear_procrustes_similarity": 0.849917384742708,
+    "interpretation": "comparison with accepted viewer x/y on the same rendered authors"
+  },
+  "acceptance": {
+    "not_numerically_flat": true,
+    "not_isotropic_sphere": true,
+    "edges_substantially_shorter_than_nonedges": true,
+    "paired_edge_discrimination": true,
+    "local_graph_neighbourhood_enrichment": true,
+    "retains_reference_2d_pairwise_structure": true,
+    "passed": true
+  }
+}
