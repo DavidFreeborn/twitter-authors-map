@@ -6,7 +6,7 @@
 // Data
 let nodes = [];
 let summary = {};
-const ASSET_VERSION = '20260828-constrained-3d-1';
+const ASSET_VERSION = '20260830-status-cleanup-1';
 const versionedAsset = path => `${path}?v=${ASSET_VERSION}`;
 
 // Descriptive labels for the 21 largest Leiden-directed communities
@@ -1050,8 +1050,8 @@ async function setViewMode(mode) {
         try {
             await load3DLayout();
         } catch (error) {
-            const status = document.getElementById('view-status');
-            if (status) status.textContent = `3D view unavailable: ${error.message}`;
+            const hint = document.getElementById('interaction-hint');
+            if (hint) hint.textContent = `3D view unavailable: ${error.message}`;
             return;
         }
     }
@@ -1069,7 +1069,6 @@ async function setViewMode(mode) {
 function updateProjectionUi() {
     const button2D = document.getElementById('view-2d');
     const button3D = document.getElementById('view-3d');
-    const status = document.getElementById('view-status');
     const hint = document.getElementById('interaction-hint');
     if (button2D) {
         button2D.classList.toggle('active', viewMode === '2d');
@@ -1080,13 +1079,6 @@ function updateProjectionUi() {
         button3D.classList.toggle('loading', layout3DState === 'loading');
         button3D.setAttribute('aria-pressed', String(viewMode === '3d'));
         button3D.disabled = nodes.length === 0 || layout3DState === 'loading';
-    }
-    if (status && layout3DState !== 'failed') {
-        status.textContent = layout3DState === 'loading'
-            ? 'Loading 3D network embedding…'
-            : viewMode === '3d' && layout3DMeta
-                ? `3D · giant component · ${layout3DMeta.rendered_node_count.toLocaleString()} authors`
-                : '2D · accepted network layout';
     }
     if (hint) {
         hint.textContent = viewMode === '3d'

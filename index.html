@@ -273,11 +273,6 @@
             opacity: 0.55;
         }
 
-        .view-status {
-            color: var(--text-dim);
-            font: 10.5px/1.5 var(--font-mono);
-        }
-
         /* Legend */
         .legend {
             display: flex;
@@ -396,19 +391,6 @@
         .canvas-tool-btn:hover {
             color: var(--text);
             background: var(--bg-control);
-        }
-
-        #view-status {
-            position: absolute;
-            top: calc(100% + 6px);
-            left: 0;
-            min-width: max-content;
-            padding: 4px 7px;
-            color: var(--text-dim);
-            background: rgba(18, 18, 26, 0.74);
-            border: 1px solid rgba(76, 76, 100, 0.55);
-            border-radius: 4px;
-            pointer-events: none;
         }
 
         #interaction-hint {
@@ -787,7 +769,6 @@
                 </div>
                 <button class="canvas-tool-btn" type="button" onclick="resetView()">Reset</button>
                 <button class="canvas-tool-btn" type="button" onclick="fitToScreen()">Fit</button>
-                <div class="view-status" id="view-status" aria-live="polite">2D · accepted network layout</div>
             </div>
             <div id="interaction-hint">Drag to pan · Wheel to zoom</div>
 
@@ -811,6 +792,6 @@
     </div>
 
     <script src="https://unpkg.com/regl@2.1.0/dist/regl.min.js"></script>
-    <script src="app.js?v=20260828-constrained-3d-1"></script>
+    <script src="app.js?v=20260830-status-cleanup-1"></script>
 </body>
 </html>
