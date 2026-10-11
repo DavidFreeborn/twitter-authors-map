@@ -1,0 +1,29 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const path = require('node:path');
+const root = process.argv[2];
+const source = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+const canvas = {clientWidth: 390, clientHeight: 600};
+const context = vm.createContext({document: {addEventListener() {}, getElementById() {return canvas;}}, window: {}});
+vm.runInContext(source, context);
+const run = s => vm.runInContext(s, context);
+for (const [width, height] of [[390,600],[1280,850],[768,600]]) {
+  canvas.clientWidth=width; canvas.clientHeight=height;
+  const scale=run('fitted2DScale(4, 3)');
+  assert.ok(4 * scale / (width/height) <= 1.800001, 'horizontal extent fits');
+  assert.ok(3 * scale <= 1.800001, 'vertical extent fits');
+}
+run(`examplePostsState='ready'; examplePosts={'test':['1','retweet_max_distinct_tokens','retweeted','<script>bad</script> & text']};`);
+const html = run(`examplePostHtml({id:'test'})`);
+assert.ok(html.includes('Retweet — shared content'));
+assert.ok(html.includes('&lt;script&gt;'));
+assert.ok(!html.includes('<script>'));
+assert.ok(run(`examplePostHtml({id:'missing'})`).includes('No sufficiently informative'));
+const labels=JSON.parse(fs.readFileSync(path.join(root,'data/community_labels.json')));
+const summary=JSON.parse(fs.readFileSync(path.join(root,'data/build_summary.json')));
+assert.equal(summary.topic_labels.length,8);
+assert.ok(summary.topic_labels.every(s=>!/^\d+:/.test(s)));
+assert.ok(Object.values(labels.communities).every(r=>!/^C\d+:/.test(r.display_label)));
+assert.ok(source.includes("fetch(versionedAsset('data/nodes.json'))"));
+console.log('PASS: responsive fit, safe example rendering, retweet attribution, missing-example feedback, clean labels and versioned data.');

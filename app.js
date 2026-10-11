@@ -1,19 +1,19 @@
 // ============================================================================
 // Twitter Authors Map - WebGL Renderer
-// Renders 198,326 authors using regl for WebGL
+// Renders matched authors using regl for WebGL
 // ============================================================================
 
 // Data
 let nodes = [];
 let summary = {};
-const ASSET_VERSION = '20260830-status-cleanup-1';
+const ASSET_VERSION = '20261011-corrected-map-1';
 const versionedAsset = path => `${path}?v=${ASSET_VERSION}`;
 
-// Descriptive labels for the 21 largest Leiden-directed communities
-// (data/community_labels.json). Communities outside the top 21 keep their
+// Descriptive labels for the supplied network communities
+// (data/community_labels.json). Communities outside the labelled set keep their
 // bare numeric ID and are described collectively as long-tail communities.
 let communityLabels = {};        // { "4": {label, display_label, short_description, ...} }
-let labelledCommunityOrder = []; // top-21 community IDs, largest first
+let labelledCommunityOrder = []; // labelled community IDs, largest first
 let communitySizes = {};         // exact matched-author count for every community
 
 // Author -> selected Example post metadata. Lazily loaded after the main point
@@ -102,19 +102,11 @@ const COMMUNITY_COLORS = [
     [0.22, 0.23, 0.47], [0.39, 0.47, 0.22], [0.55, 0.43, 0.19], [0.52, 0.24, 0.22]
 ];
 
-const TOPIC_NAMES = [
-    'Marketing/Social', 'AI Art Discourse', 'AI Tools/Code', 'Bard/LLMs',
-    'Visual AI Art', 'Bot/Spam', 'Tech/Programming', 'News/Updates',
-    'NFT/Crypto', 'Web3/DeFi', 'General AI', 'Trading/Invest'
-];
+let TOPIC_NAMES = [];
 
-const TOPIC_COLORS = [
-    [0.89, 0.10, 0.11], [0.22, 0.49, 0.72], [0.30, 0.69, 0.29], [0.60, 0.31, 0.64],
-    [1.00, 0.50, 0.00], [1.00, 1.00, 0.20], [0.65, 0.34, 0.16], [0.97, 0.51, 0.75],
-    [0.60, 0.60, 0.60], [0.40, 0.76, 0.65], [0.99, 0.55, 0.38], [0.55, 0.63, 0.80]
-];
+const TOPIC_PALETTE = [[0.6, 0.6, 0.6], [0.6509803921568628, 0.3411764705882353, 0.1607843137254902], [1.0, 0.5019607843137255, 0.0], [0.6, 0.30980392156862746, 0.6392156862745098], [0.9686274509803922, 0.5098039215686274, 0.7490196078431373], [0.30196078431372547, 0.6901960784313725, 0.2901960784313726], [0.9882352941176471, 0.5490196078431373, 0.3803921568627451], [0.2196078431372549, 0.49019607843137253, 0.7215686274509804]];
 
-// Shared with blog_post_figures/styles/palette.json. Values are expressed as
+// Sentiment colours are expressed as
 // exact 8-bit RGB fractions so WebGL points and CSS legends render identically.
 const SENTIMENT_COLORS = {
     positive: [44/255, 162/255, 95/255],   // #2ca25f
@@ -144,7 +136,7 @@ const GREY = [0.35, 0.35, 0.42];
 // Community label helpers
 // ============================================================================
 
-// Presentation-only short label for the labelled top 21; numeric IDs remain
+// Presentation-only short label for the labelled set; numeric IDs remain
 // stored separately in each node and in the community key.
 function communityLabel(c) {
     if (c === null || c === undefined || c < 0) return 'No community';
@@ -159,9 +151,7 @@ function communityIsLabelled(c) {
 function communityDescription(c) {
     const rec = communityLabels[String(c)];
     if (rec) return rec.short_description;
-    return 'Long-tail community: one of the smaller Leiden-directed communities '
-        + 'outside the 21 largest, which together hold about 5% of matched authors. '
-        + 'These are not individually labelled.';
+    return 'No descriptive label has been supplied for this community.';
 }
 
 function communitySize(c) {
@@ -320,7 +310,8 @@ function multiplyMatrix4(out, a, b) {
 }
 
 function updateCameraMatrices(canvas, deltaSeconds) {
-    const damping = 1 - Math.exp(-Math.min(deltaSeconds, 0.05) * 13);
+    const damping = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 1 : 1 - Math.exp(-Math.min(deltaSeconds, 0.05) * 13);
     const previous = [camera3D.yaw, camera3D.pitch, camera3D.distance, ...camera3D.target];
     camera3D.yaw = lerp(camera3D.yaw, camera3D.desiredYaw, damping);
     camera3D.pitch = lerp(camera3D.pitch, camera3D.desiredPitch, damping);
@@ -360,13 +351,26 @@ function cameraBasis3D() {
 async function init() {
     try {
         const [nodesResp, summaryResp, labelsResp] = await Promise.all([
-            fetch('data/nodes.json'),
-            fetch('data/build_summary.json'),
+            fetch(versionedAsset('data/nodes.json')),
+            fetch(versionedAsset('data/build_summary.json')),
             fetch(versionedAsset('data/community_labels.json')).catch(() => null)
         ]);
 
+        if (!nodesResp.ok) throw new Error(`Author data: HTTP ${nodesResp.status}`);
+        if (!summaryResp.ok) throw new Error(`Map summary: HTTP ${summaryResp.status}`);
         nodes = await nodesResp.json();
         summary = await summaryResp.json();
+        if (!nodes.length) throw new Error('The viewer node file is empty');
+        if (summary.matched_authors !== nodes.length) throw new Error('Author data and map summary belong to different versions');
+        const count = Object.keys(nodes[0]).filter(key => /^t[0-9]+$/.test(key)).length;
+        TOPIC_NAMES = Array.from({length: count}, (_, i) => summary.topic_labels?.[i] || `Topic ${i}`);
+        const selector = document.getElementById('topic-select');
+        selector.replaceChildren(...TOPIC_NAMES.map((label, i) => {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = label;
+            return option;
+        }));
 
         if (labelsResp && labelsResp.ok) {
             const payload = await labelsResp.json();
@@ -407,7 +411,7 @@ async function init() {
         viewY = (minY + maxY) / 2;
         const rangeX = maxX - minX;
         const rangeY = maxY - minY;
-        viewScale = 0.9 / Math.max(rangeX, rangeY) * 2;
+        viewScale = fitted2DScale(rangeX, rangeY);
 
         // Initialize WebGL
         initWebGL();
@@ -597,7 +601,7 @@ function initWebGL() {
 
     // Off-screen ID pass: each point is encoded as a 24-bit index. This makes
     // 3D hover/click selection independent of draw order and avoids scanning
-    // 198,326 projected points on every pointer movement.
+    // all projected points on every pointer movement.
     drawPick3D = regl({
         vert: `
             precision highp float;
@@ -717,6 +721,8 @@ function render(now) {
     const canvas = document.getElementById('graph-canvas');
     const dpr = window.devicePixelRatio;
     resizeCanvasIfNeeded(canvas);
+    // Refresh regl's drawing-buffer dimensions after responsive resizing.
+    regl.poll();
     regl.clear({ color: [0.07, 0.07, 0.10, 1], depth: 1 });
 
     if (viewMode === '3d' && positions3D) {
@@ -772,8 +778,8 @@ function updateColors() {
         }
         else if (mode === 'dominant_topic') {
             const topicIdx = node[F.dominantTopic];
-            if (topicIdx !== null && topicIdx !== undefined && topicIdx >= 0 && topicIdx < TOPIC_COLORS.length) {
-                color = TOPIC_COLORS[topicIdx];
+            if (topicIdx !== null && topicIdx !== undefined && topicIdx >= 0 && topicIdx < TOPIC_NAMES.length) {
+                color = TOPIC_PALETTE[topicIdx % TOPIC_PALETTE.length];
                 validCount++;
             }
         }
@@ -855,7 +861,7 @@ function updateLegend(mode) {
     const rgb = (c) => `rgb(${Math.round(c[0]*255)},${Math.round(c[1]*255)},${Math.round(c[2]*255)})`;
 
     if (mode === 'community') {
-        // Discrete swatches: the 21 labelled communities, largest first, then
+        // Discrete swatches: the labelled communities, largest first, then
         // a single entry for the unlabelled long tail.
         const comms = [...new Set(nodes.map(n => n[F.community]))]
             .filter(c => c !== null && c >= 0);
@@ -894,8 +900,8 @@ function updateLegend(mode) {
             const div = document.createElement('div');
             div.className = 'legend-item';
             div.innerHTML = `
-                <span class="legend-swatch" style="background:${rgb(TOPIC_COLORS[i])}"></span>
-                <span class="legend-label">${TOPIC_NAMES[i]}</span>
+                <span class="legend-swatch" style="background:${rgb(TOPIC_PALETTE[i % TOPIC_PALETTE.length])}"></span>
+                <span class="legend-label">${escapeHtml(TOPIC_NAMES[i])}</span>
             `;
             container.appendChild(div);
         }
@@ -1085,12 +1091,21 @@ function updateProjectionUi() {
             ? 'Drag to rotate · Shift/right-drag to pan · Wheel to zoom'
             : 'Drag to pan · Wheel to zoom';
     }
+    const status = document.getElementById('search-status');
+    const query = document.getElementById('search-input').value.trim();
+    const index = nodeIndexById.get(query);
+    if (status?.classList.contains('found') && index !== undefined) {
+        updateFoundStatus(nodes[index]);
+    }
 }
 
 function reset3DView(immediate) {
     camera3D.desiredYaw = CAMERA3D_HOME_YAW;
     camera3D.desiredPitch = CAMERA3D_HOME_PITCH;
-    camera3D.desiredDistance = camera3D.homeDistance;
+    const canvas = document.getElementById('graph-canvas');
+    const aspect = Math.max(1, canvas.clientWidth) / Math.max(1, canvas.clientHeight);
+    const halfFov = Math.atan(Math.tan(Math.PI / 8) * Math.min(1, aspect));
+    camera3D.desiredDistance = Math.min(8, camera3D.homeDistance * Math.sin(Math.PI / 8) / Math.sin(halfFov));
     camera3D.desiredTarget = [0, 0, 0];
     if (immediate) {
         camera3D.yaw = camera3D.desiredYaw;
@@ -1424,14 +1439,14 @@ function showTooltip(e) {
     if (nearest) {
         hoverNode = nearest;
         let html = `<div class="tt-author">${nearest[F.id]}</div>`;
-        html += `<div class="tt-row"><span class="tt-label">Community</span><span class="tt-value">${nearest[F.community]}</span></div>`;
+        html += `<div class="tt-row"><span class="tt-label">Community</span><span class="tt-value">${escapeHtml(communityLabel(nearest[F.community]))}</span></div>`;
         html += `<div class="tt-row"><span class="tt-label">Full degree</span><span class="tt-value">${nearest[F.fullDegree]?.toFixed(0) || '-'}</span></div>`;
         html += `<div class="tt-row"><span class="tt-label">Matched degree</span><span class="tt-value">${nearest[F.matchedDegree]?.toFixed(0) || '-'}</span></div>`;
 
         const domTopic = nearest[F.dominantTopic];
         if (domTopic !== null && domTopic !== undefined && domTopic >= 0) {
             const topicName = TOPIC_NAMES[domTopic] || `Topic ${domTopic}`;
-            html += `<div class="tt-row"><span class="tt-label">Topic</span><span class="tt-value">${topicName}</span></div>`;
+            html += `<div class="tt-row"><span class="tt-label">Topic</span><span class="tt-value">${escapeHtml(topicName)}</span></div>`;
             html += `<div class="tt-row"><span class="tt-label">Topic prob</span><span class="tt-value">${(nearest[F.dominantProb] * 100).toFixed(0)}%</span></div>`;
         }
 
@@ -1480,6 +1495,9 @@ function loadExamplePosts() {
     fetch(versionedAsset('data/representative_posts.json'))
         .then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
         .then(j => {
+            if (j.n_total !== undefined && j.n_total !== nodes.length) {
+                throw new Error('Example posts belong to a different map population');
+            }
             examplePosts = j.posts || j;
             examplePostsState = 'ready';
             console.log(`Loaded ${Object.keys(examplePosts).length} Example posts`);
@@ -1508,7 +1526,10 @@ function examplePostHtml(node) {
     if (!record) {
         return title + `<div class='ap-empty'>No sufficiently informative example post available.</div>`;
     }
-    return title + `<blockquote class='ap-excerpt'>${escapeHtml(record[3])}</blockquote>`;
+    const types = {original: 'Original post', quoted: 'Quote post', replied_to: 'Reply', retweeted: 'Retweet — shared content'};
+    const type = types[record[2]] || 'Post';
+    return title + `<div class='ap-empty'>${escapeHtml(type)} · Illustrative excerpt</div>`
+        + `<blockquote class='ap-excerpt'>${escapeHtml(record[3])}</blockquote>`;
 }
 
 function showAuthorPanel(node) {
@@ -1578,6 +1599,16 @@ function closeAuthorPanel() {
 // Controls
 // ============================================================================
 
+function updateFoundStatus(node) {
+    const status = document.getElementById('search-status');
+    if (!status) return;
+    status.className = 'search-status found';
+    status.innerHTML = `Found <strong>${escapeHtml(node[F.id])}</strong><br>`
+        + escapeHtml(communityLabel(node[F.community]))
+        + (viewMode === '3d' && !nodeVisibleIn3D(node)
+            ? '<br>Outside the 3D giant component' : '');
+}
+
 function searchAuthor() {
     const query = document.getElementById('search-input').value.trim();
     if (!query) return;
@@ -1594,23 +1625,22 @@ function searchAuthor() {
             viewScale = 0.3;
         }
 
-        if (status) {
-            status.className = 'search-status found';
-            status.innerHTML = `Found <strong>${escapeHtml(node[F.id])}</strong><br>`
-                + escapeHtml(communityLabel(node[F.community]))
-                + (viewMode === '3d' && !nodeVisibleIn3D(node)
-                    ? '<br>Outside the 3D giant component'
-                    : '');
-        }
+        updateFoundStatus(node);
         showAuthorPanel(node);
     } else {
         if (status) {
             status.className = 'search-status missing';
-            status.textContent = `Author ${query} not found among the 198,326 matched authors`;
+            status.textContent = `Author ${query} not found among the ${nodes.length.toLocaleString()} matched authors`;
         }
         closeAuthorPanel();
     }
 }
+function fitted2DScale(rangeX, rangeY) {
+    const canvas = document.getElementById('graph-canvas');
+    const aspect = Math.max(1, canvas.clientWidth) / Math.max(1, canvas.clientHeight);
+    return 1.8 / Math.max(rangeX / aspect, rangeY, 1e-12);
+}
+
 function resetView() {
     if (viewMode === '3d') {
         reset3DView(false);
@@ -1620,7 +1650,7 @@ function resetView() {
     viewY = (minY + maxY) / 2;
     const rangeX = maxX - minX;
     const rangeY = maxY - minY;
-    viewScale = 0.9 / Math.max(rangeX, rangeY) * 2;
+    viewScale = fitted2DScale(rangeX, rangeY);
 }
 
 function fitToScreen() {

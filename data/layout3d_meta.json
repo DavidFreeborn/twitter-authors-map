@@ -1,110 +1,42 @@
 {
-  "schema_version": 8,
-  "generated_utc": "2026-08-28T07:57:39.467139+00:00",
-  "algorithm": "native 3D Graphviz sfdp with graph-Laplacian-regularised accepted-2D macro constraint",
-  "dimensions": 3,
-  "layout_only": true,
-  "node_count": 198326,
-  "rendered_node_count": 187095,
-  "edge_count": 853133,
-  "rendered_directed_edges": 851957,
-  "rendered_undirected_simple_edges": 837811,
-  "rendered_component": "largest weak component",
+  "schema_version": 1,
+  "algorithm": "Graphviz sfdp with graph-Laplacian 2D constraint",
+  "node_count": 164291,
+  "rendered_node_count": 161035,
+  "edge_count": 782974,
+  "rendered_undirected_edges": 764868,
+  "component_count": 2833,
   "seed": 42,
-  "graph": {
-    "native_layout_topology": "undirected simple topology derived from the observed directed graph",
-    "native_layout_weights": "not modelled by Graphviz sfdp",
-    "constraint_graph": "undirected summed observed weights transformed with log1p",
-    "accepted_macro_source": "weighted directed DrL layout",
-    "communities_used": false,
-    "author_attributes_used": false
-  },
   "construction": {
-    "native_geometry": "fixed full-graph Graphviz sfdp 14.1.3 3D coordinates",
-    "macro_constraint": "accepted weighted DrL 2D coordinates",
-    "equation": "(I + lambda L)d = accepted_xy - native_xy",
-    "laplacian": "unnormalised Laplacian of log1p-transformed undirected summed edge weights",
     "laplacian_strength": 0.1,
-    "target_displacement_rms_ratio": 0.8,
+    "displacement_rms_ratio": 0.8,
     "native_depth_multiplier": 1.0,
-    "communities_or_author_attributes_used": false,
-    "post_transform": "median translation and one uniform p99.5-radius scale; no clipping, per-axis scaling, or community packing",
-    "interpretation": "The constraint restores the accepted map's macro separation while regularisation discourages local edge-neighbour distortions; native sfdp supplies all depth."
-  },
-  "solver": {
-    "median_log_weighted_degree": 2.0794415416798357,
-    "unscaled_source_rms": 0.2862909415206032,
-    "unscaled_field_rms": 0.27612988390734666,
-    "computed_field_gain": 0.8294384873363899,
-    "cg_iterations_x": 14,
-    "cg_iterations_y": 14,
-    "cg_max_absolute_residual": 0.00015618127474748
-  },
-  "post_layout_transform": "graph-regularised macro constraint followed by median translation and one uniform scale; no clipping, no axis-wise scaling, no community separation, no per-community scaling, and no forced depth",
-  "normalisation": {
-    "native_input_median": [
-      0.0,
-      0.0,
-      0.0
-    ],
-    "native_input_p99.5_radius": 1.0000000051033917,
-    "accepted_2d_median": [
-      -29.07,
-      -77.82
-    ],
-    "accepted_2d_p99.5_radius": 416.08426374013914,
-    "pre_output_median": [
-      -0.007461813138509053,
-      -0.009433011480219378,
-      0.0
-    ],
-    "pre_output_p99.5_radius": 0.974236303391958
-  },
-  "geometry": {
-    "covariance_eigenvalues": [
-      0.11762893621754893,
-      0.1017070740641793,
-      0.0330414187477245
-    ],
-    "covariance_eigenvalue_ratios": [
-      1.0,
-      0.8646433210624048,
-      0.28089532907630843
-    ],
-    "radius_p50": 0.43493883913283143,
-    "radius_p90": 0.7966100402838456,
-    "radius_p99": 0.9529882553218676,
-    "radius_p99.5": 1.0,
-    "radius_max": 1.7902660284113372
+    "graph_weights": "native layout unweighted; constraint uses log1p summed weights",
+    "communities_or_author_attributes_used": false
   },
   "coordinates": {
-    "path": "layout3d.bin",
-    "dtype": "little-endian float32",
-    "order": "viewer-node order; interleaved x,y,z; non-rendered rows are zero",
-    "bytes": 2379912,
-    "sha256": "49966f682016486003ecb11c0e0a2c6843351fb3f8bcaa5d87131522a6798a6c"
+    "sha256": "e137dfd01191335ba4acdcf09735d9e03428c14194d38e549d61d9be97baffad"
   },
   "render_indices": {
-    "path": "layout3d_indices.bin",
-    "sha256": "03354b4b4d7121289e3b4f187749af5c6c1aab87badec5b3ddbe3aba99b8f507"
+    "sha256": "2c7dbd702473f56f54d885206342bf09bb62459b0a7acbc1cebf3cfaa0f7bf20"
+  },
+  "viewer_nodes_sha256": "c5fa4fb2af11ff727170636c02f4c861ca631539dd5d980665c016d9dac15845",
+  "solver": {
+    "median_log_weighted_degree": 2.0794415416798357,
+    "unscaled_source_rms": 0.27419379536123595,
+    "unscaled_field_rms": 0.26223582295695397,
+    "computed_field_gain": 0.8364800575892178,
+    "cg_iterations_x": 14,
+    "cg_iterations_y": 14,
+    "cg_max_absolute_residual": 9.828051408755645e-05
   },
   "source": {
-    "native_coordinates": "global_author_map\\app\\data\\candidates\\sfdp_v14internal_seed42\\layout3d.bin",
-    "native_coordinates_sha256": "8906f0d765a223b995e6fff28d2ce1f0e28a64797dcee2c1a744ab05da2996b8",
-    "native_algorithm": "Graphviz sfdp 14.1.3 native 3D multilevel force-directed layout",
-    "native_seed": 42,
-    "native_metadata_sha256": "75c8ad0f2710a4141e692bffa3439f928634eca93afa1425eac949470320bfac",
-    "viewer_nodes": "global_author_map\\app\\data\\nodes.json",
-    "viewer_nodes_sha256": "2728df43c2071d6d5819ee9e8b71f6a3d08918e9dff585d586fcd515e359152b",
-    "sample_indices": "global_author_map\\sfdp_feasibility\\samples\\sample_187095_nodes.npy",
-    "sample_indices_sha256": "9d3723c255c87573050ebae052db3cff5158730d5967f1dcabe991d2c2b8dd40",
-    "adjacency": "global_author_map\\sfdp_feasibility\\samples\\sample_187095_graph.npz",
-    "adjacency_sha256": "0824d4513aae19f785e84c83998fc654181b98ace7ff7579b7a4268ce2720393"
+    "nodes_sha256": "c2bd02db795cfa7da9403d461bd75ee650a7519363355e88a985a37c84348983",
+    "edges_sha256": "3111713a87d2049cbcc3851e729649b030a5d463862a09ac1dc5210d29fd563a",
+    "native_runner_sha256": "b08c1f983ea16a55e4160d57dfdbc12c62984d524165a83e59d9421a54087473"
   },
-  "runtime": {
-    "python": "3.14.2",
-    "numpy": "2.4.2",
-    "scipy": "1.17.1"
-  },
-  "interpretation": "A reproducible structure-preserving 3D network view. Axes, handedness and absolute scale have no substantive meaning."
+  "normalised_bounds": {
+    "radius_p995": 1.0,
+    "max_radius": 1.675540721629811
+  }
 }

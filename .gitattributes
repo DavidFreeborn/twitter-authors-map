@@ -1,0 +1,9 @@
+*.js text eol=lf
+*.cjs text eol=lf
+*.py text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.bin binary
+data/nodes.json -text
+data/representative_posts.json -text
