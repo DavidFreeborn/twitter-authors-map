@@ -35,16 +35,12 @@ The previous published map (198,326 authors and 12 topics) is preserved by Git t
 The corrected eight-topic edition is additionally preserved by Git tag `before-twelve-topic-update-2026-10-11`, which identifies its actual published tree.
 
 
-## Interactive focus and colour palettes
+## Selecting authors
 
-The atlas can highlight authors while preserving their existing positions and all model scores. Selected topics are combined with OR. The default rule selects authors whose highest-weighted topic is selected; the alternative requires at least the chosen membership in any one selected topic (not the sum). A community filter is intersected with that selection. An empty topic selection means no topic restriction.
+Topic and community legends are ordered by full-population author counts, largest first. Topic counts use the highest-weighted topic; they do not represent summed fuzzy membership. The combined long tail is labelled as such and sorted by its combined count.
 
-Other authors can be dimmed for context or hidden. Both 2D and 3D use the same author mask. The display reports the full selection and, in 3D, its coverage in the giant-component coordinates. Mean net sentiment is the unweighted mean of positive minus negative author scores over the full selection, including authors available only in 2D; it is not post-level sentiment about a topic.
+Ticking legend entries selects their union. Selected authors remain highlighted when changing colour views or switching between 2D and 3D; unselected authors are dimmed. Returning to the source view restores its ticks. Ticking a group in a different categorical view starts a new selection, matching the other atlases; there are no hidden intersections or membership thresholds. Clear selection restores all authors. Reset and Fit control the camera only. Search and example posts remain available for all authors.
 
-Focus is independent of the colour lens: communities, leading topics, topic membership, sentiment and emotion remain available. Map picking inspects focused authors; ID search still finds every author and reports when a result is outside the focus. Clear selection removes both the topic and community restrictions. Reset and Fit preserve focus and continue to control the camera only.
+The topic palette matches the current light and dark figures. The five largest topics use orange, blue, magenta, yellow and green. Community, sentiment and emotion colours are unchanged. Labels, counts and selection provide alternatives to colour alone. Data, topic scores and network geometry are unchanged.
 
-The shared topic palette is identical in this atlas, its label guide and the current light/dark blog figures. Colours never change memberships or labels. Twelve categories cannot be reliably distinguished by colour alone for every viewer, so labelled checkboxes, isolation and exact counts provide alternatives. The map retains its existing sentiment and emotion scales.
-
-The focusable map supports arrow-key pan (2D) or rotation (3D), plus/minus zoom, and Home to fit. Native controls support keyboard selection. Original mouse, touch, search, examples and camera controls remain available.
-
-Legend checkboxes replace the separate focus panel. Multiple communities combine with OR; topic and community selections intersect. Selection persists across colour lenses. More options retains per-topic membership thresholds and dim/hide behaviour. The two largest topics use orange and blue; topic colours match the light/dark figures.
+The map supports arrow-key pan or rotation, plus/minus zoom and Home to fit. Legend checkboxes and colour views support native keyboard controls.

@@ -6,7 +6,7 @@
 // Data
 let nodes = [];
 let summary = {};
-const ASSET_VERSION = '20261011-legend-2';
+const ASSET_VERSION = '20261011-simple-3';
 const versionedAsset = path => `${path}?v=${ASSET_VERSION}`;
 
 // Descriptive labels for the supplied network communities
@@ -107,99 +107,90 @@ let TOPIC_NAMES = [];
 
 
 // Shared topic colours: identical to light/dark plots and their legends.
-const TOPIC_PALETTE = ["#bab0d8", "#edc948", "#4e9ed4", "#9c9b54", "#e77ca5", "#b78c68", "#929292", "#76b7b2", "#ef7848", "#b16ac9", "#63a65c", "#e5ac32"].map(hex => [1,3,5].map(i => parseInt(hex.slice(i,i+2),16)/255));
-let focusTopics = new Set(), focusCommunities = new Set(), focusRule = 'dominant';
-let legendGroup = 'community';
-let focusThreshold = 0.3, focusDisplay = 'dim';
+const TOPIC_PALETTE = ["#e8a0bd", "#a9d4ed", "#35b9ff", "#909f3d", "#b28a60", "#e65bdb", "#b9bec5", "#4b9f98", "#ff6d3a", "#f1d54a", "#9975e8", "#54c97e"].map(hex => [1,3,5].map(i => parseInt(hex.slice(i,i+2),16)/255));
+// A selection belongs to one category lens and survives changes of colour view.
+let focusKeys = new Set(), focusKind = null;
 let focusMask = null, focusBuffer = null, focusTotals = null;
-function focusIsActive() { return focusTopics.size > 0 || focusCommunities.size > 0; }
+let topicSizes = [], topicOrder = [], communityOrder = [];
+function focusIsActive() { return focusKeys.size > 0; }
+function communityKey(node) {
+    const c=node[F.community];
+    return c==null||c<0?'missing':communityIsLabelled(c)?String(c):'tail';
+}
+function topicKey(node) {
+    const t=node[F.dominantTopic];
+    return Number.isInteger(t)&&t>=0&&t<TOPIC_NAMES.length?t:-1;
+}
 function matchesFocus(node) {
-    const communityOK = !focusCommunities.size || focusCommunities.has(String(node[F.community]))
-        || (focusCommunities.has('tail') && node[F.community] >= 0 && !communityIsLabelled(node[F.community]))
-        || (focusCommunities.has('missing') && (node[F.community] == null || node[F.community] < 0));
-    if (!communityOK) return false;
-    if (!focusTopics.size) return true;
-    if (focusTopics.has(-1) && !Number.isInteger(node[F.dominantTopic])) return true;
-    if (focusRule === 'dominant') return focusTopics.has(node[F.dominantTopic]);
-    // ANY selected topic individually meets threshold, not their sum.
-    for (const i of focusTopics) {
-        if (Number.isFinite(node[F.topic(i)]) && node[F.topic(i)] >= focusThreshold) return true;
+    return !focusIsActive() || focusKeys.has(focusKind==='topic'?topicKey(node):communityKey(node));
+}
+function buildLegendOrder() {
+    topicSizes=Array(TOPIC_NAMES.length).fill(0);
+    const sizes=new Map();
+    for(const n of nodes) {
+        const topic=topicKey(n);if(topic>=0)topicSizes[topic]++;
+        const key=communityKey(n);sizes.set(key,(sizes.get(key)||0)+1);
     }
-    return false;
+    topicOrder=TOPIC_NAMES.map((_,i)=>i).sort((a,b)=>topicSizes[b]-topicSizes[a]||a-b);
+    communityOrder=[...sizes].map(([key,count])=>({key,count})).sort((a,b)=>b.count-a.count||a.key.localeCompare(b.key));
 }
-function initialiseFocusControls() { applyFocus(); renderSelectionLegend(); }
-function clearFocus() {
-    focusTopics.clear();focusCommunities.clear();applyFocus();renderSelectionLegend();
+function initialiseFocusControls() {
+    buildLegendOrder();
+    const selector=document.getElementById('topic-select');
+    selector.replaceChildren(...topicOrder.map(i=>{
+        const option=document.createElement('option');option.value=i;option.textContent=TOPIC_NAMES[i];return option;
+    }));
+    applyFocus();
 }
-function renderSelectionLegend() {
-    const container=document.getElementById('selection-list');
-    container.replaceChildren();
-    const isTopic=legendGroup==='topic', selected=isTopic?focusTopics:focusCommunities;
+function toggleGroup(kind,key,checked) {
+    // Like the other atlases, ticking in a different lens starts a new selection.
+    if(focusKind!==kind){focusKeys.clear();focusKind=kind;}
+    checked?focusKeys.add(key):focusKeys.delete(key);
+    if(!focusKeys.size)focusKind=null;
+    applyFocus();
+}
+function clearFocus() {focusKeys.clear();focusKind=null;applyFocus();updateLegend(colorMode);}
+function renderSelectionLegend(mode) {
+    const container=document.getElementById('legend');
+    const kind=mode==='community'?'community':'topic';
     const rgb=c=>`rgb(${c.map(x=>Math.round(x*255)).join(',')})`;
-    const items=isTopic?TOPIC_NAMES.map((name,i)=>({key:i,name,color:TOPIC_PALETTE[i]}))
-        :labelledCommunityOrder.map(c=>({key:String(c),name:communityLabel(c),color:COMMUNITY_COLORS[c%COMMUNITY_COLORS.length]}));
-    if(!isTopic && nodes.some(n=>n[F.community]>=0&&!communityIsLabelled(n[F.community])))
-        items.push({key:'tail',name:'Other communities (combined)',color:null});
-    if(nodes.some(n=>isTopic?!Number.isInteger(n[F.dominantTopic]):n[F.community]==null||n[F.community]<0))
-        items.push({key:isTopic?-1:'missing',name:'No data',color:GREY});
-    for(const item of items) {
+    let items=kind==='topic'?topicOrder.map(i=>({key:i,name:TOPIC_NAMES[i],count:topicSizes[i],color:TOPIC_PALETTE[i]}))
+        :communityOrder.map(({key,count})=>({key,count,name:key==='tail'?'Other communities (combined)':key==='missing'?'No data':communityLabel(Number(key)),color:key==='tail'?null:key==='missing'?GREY:COMMUNITY_COLORS[Number(key)%COMMUNITY_COLORS.length]}));
+    const missingTopics=nodes.length-topicSizes.reduce((a,b)=>a+b,0);
+    if(kind==='topic'&&missingTopics)items.push({key:-1,name:'No data',count:missingTopics,color:GREY});
+    items.sort((a,b)=>b.count-a.count);
+    for(const item of items){
         const row=document.createElement('label');row.className='legend-choice';
-        const input=document.createElement('input');input.type='checkbox';input.checked=selected.has(item.key);
-        input.addEventListener('change',()=>{input.checked?selected.add(item.key):selected.delete(item.key);applyFocus();});
+        const input=document.createElement('input');input.type='checkbox';input.checked=focusKind===kind&&focusKeys.has(item.key);
+        input.addEventListener('change',()=>toggleGroup(kind,item.key,input.checked));
         const swatch=document.createElement('span');swatch.className='legend-swatch'+(item.color?'':' legend-swatch-multi');
         if(item.color)swatch.style.background=rgb(item.color);
-        const label=document.createElement('span');label.textContent=item.name;
-        row.append(input,swatch,label);container.appendChild(row);
-    }
-    updateSelectionTabs();
-}
-function updateSelectionTabs() {
-    for(const group of ['topic','community']) {
-        const button=document.getElementById('legend-'+group),count=group==='topic'?focusTopics.size:focusCommunities.size;
-        button.textContent=(group==='topic'?'Topics':'Communities')+(count?' ('+count+')':'');
-        button.setAttribute('aria-pressed',String(legendGroup===group));
+        const name=document.createElement('span');name.textContent=item.name;
+        const count=document.createElement('span');count.className='legend-count';count.textContent=item.count.toLocaleString();count.setAttribute('aria-hidden','true');
+        row.title=item.count.toLocaleString()+' authors';row.append(input,swatch,name,count);container.appendChild(row);
     }
 }
 function applyFocus() {
-    if(!focusMask) focusMask=new Float32Array(nodes.length);
-    let count=0,in3d=0,net=0,netCount=0;
-    for(let i=0;i<nodes.length;i++) {
-        const node=nodes[i],included=matchesFocus(node);focusMask[i]=included?1:0;
-        if(included) {
-            count++;if(visible3D?.[i]) in3d++;
-            if(Number.isFinite(node[F.positive])&&Number.isFinite(node[F.negative])) {
-                net+=node[F.positive]-node[F.negative];netCount++;
-            }
-        }
+    if(!focusMask)focusMask=new Float32Array(nodes.length);
+    let count=0,in3d=0;
+    for(let i=0;i<nodes.length;i++){
+        const included=matchesFocus(nodes[i]);focusMask[i]=included?1:0;
+        if(included){count++;if(visible3D?.[i])in3d++;}
     }
-    focusTotals={count,in3d,net:netCount?net/netCount:null};
-    if(focusBuffer) focusBuffer.subdata(focusMask);
+    focusTotals={count,in3d};if(focusBuffer)focusBuffer.subdata(focusMask);
     pickDirty=true;document.getElementById('tooltip').style.display='none';
-    document.getElementById('focus-threshold-wrap').hidden=focusRule!=='membership';
-    document.getElementById('selection-status').hidden=!focusIsActive();
-    updateSelectionTabs();
-    updateFocusStatus();if(selectedNode) updateFoundStatus(selectedNode);
+    updateFocusStatus();if(selectedNode)updateFoundStatus(selectedNode);
 }
 function updateFocusStatus() {
     if(!focusTotals)return;
-    const {count,in3d,net}=focusTotals,active=focusIsActive();
-    document.getElementById('focus-status').textContent=active
-        ?count.toLocaleString()+' selected of '+nodes.length.toLocaleString()+' authors'
-        :'All '+nodes.length.toLocaleString()+' authors';
-    document.getElementById('focus-details').textContent=
-        (viewMode==='3d'?in3d.toLocaleString()+' in 3D; '+(count-in3d).toLocaleString()+' available only in 2D. ':'')
-        +(active&&net!==null?'Selected authors’ mean net sentiment: '+fmtSigned(net)+'. ':'')
-        +(active?(focusDisplay==='dim'?'Others are dimmed. ':'Others are hidden. ')
-            +'Change Colour By to inspect this same group.':'Choose topics or a community to focus; the network layout stays fixed.');
-    const status=document.getElementById('focus-map-status');
-    status.textContent=active?count.toLocaleString()+' selected'+(viewMode==='3d'?' · '+in3d.toLocaleString()+' in 3D':''):'';
-    status.hidden=!active;
-
+    const {count,in3d}=focusTotals;
+    document.getElementById('focus-map-status').hidden=!focusIsActive();
+    document.getElementById('focus-status').textContent=count.toLocaleString()+' selected'+(viewMode==='3d'?' · '+in3d.toLocaleString()+' in 3D':'');
+    document.getElementById('focus-status').title=focusKind==='topic'?'Selected in Topics':'Selected in Communities';
 }
 function drawFocusedCloud(draw,props,is3d) {
     if(!focusIsActive()){draw({...props,focusPass:-1});return;}
-    if(focusDisplay==='dim')draw({...props,focusPass:0});
-    // Context must not occlude the selected group in the depth buffer.
+    draw({...props,focusPass:0});
     if(is3d)regl.clear({depth:1});
     draw({...props,focusPass:1});
 }
@@ -981,7 +972,7 @@ function updateLegend(mode) {
     // Helper to create RGB string
     const rgb = (c) => `rgb(${Math.round(c[0]*255)},${Math.round(c[1]*255)},${Math.round(c[2]*255)})`;
 
-    renderSelectionLegend();
+    if(mode==='community'||mode==='dominant_topic')renderSelectionLegend(mode);
     if (mode === 'sentiment') {
         // Gradient bar for sentiment
         const sentType = document.getElementById('sentiment-select').value;
@@ -1394,24 +1385,17 @@ function setupEventListeners() {
         pickDirty=true;
     });
 
-    document.getElementById('colour-by').addEventListener('change',e=>{
-        colorMode=e.target.value;
-        if(colorMode==='community')legendGroup='community';
-        if(colorMode==='dominant_topic'||colorMode==='topic_membership')legendGroup='topic';
-        document.getElementById('sentiment-options').classList.toggle('visible',colorMode==='sentiment');
-        document.getElementById('topic-options').classList.toggle('visible',colorMode==='topic_membership');
-        document.getElementById('emotion-options').classList.toggle('visible',colorMode==='emotion');
-        updateColors();
+    document.querySelectorAll('input[name="color-mode"]').forEach(input=>{
+        input.addEventListener('change',()=>{
+            colorMode=input.value;
+            document.querySelectorAll('.radio-item').forEach(item=>item.classList.toggle('active',item.dataset.mode===colorMode));
+            document.getElementById('sentiment-options').classList.toggle('visible',colorMode==='sentiment');
+            document.getElementById('topic-options').classList.toggle('visible',colorMode==='topic_membership');
+            document.getElementById('emotion-options').classList.toggle('visible',colorMode==='emotion');
+            updateColors();
+        });
     });
-    for(const group of ['topic','community'])document.getElementById('legend-'+group).addEventListener('click',()=>{legendGroup=group;renderSelectionLegend();});
-    document.getElementById('focus-rule').addEventListener('change',e=>{focusRule=e.target.value;applyFocus();});
-    document.getElementById('focus-threshold').addEventListener('input',e=>{
-        focusThreshold=Number(e.target.value)/100;
-        document.getElementById('focus-threshold-value').textContent=e.target.value+'%';applyFocus();
-    });
-    document.getElementById('focus-display').addEventListener('change',e=>{focusDisplay=e.target.value;updateFocusStatus();});
     document.getElementById('focus-clear').addEventListener('click',clearFocus);
-
 
     // Sub-selects
     document.getElementById('sentiment-select').addEventListener('change', updateColors);
@@ -1693,7 +1677,7 @@ function updateFoundStatus(node) {
     status.className = 'search-status found';
     status.innerHTML = `Found <strong>${escapeHtml(node[F.id])}</strong><br>`
         + escapeHtml(communityLabel(node[F.community]))
-        + (!matchesFocus(node)?'<br>Outside the selected group. Clear focus to show on map.':'')
+        + (!matchesFocus(node)?'<br>Outside the selected group. Clear selection to show on map.':'')
         + (viewMode === '3d' && !nodeVisibleIn3D(node)
             ? '<br>Outside the 3D giant component' : '');
 }
