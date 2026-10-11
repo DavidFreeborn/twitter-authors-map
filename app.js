@@ -6,7 +6,7 @@
 // Data
 let nodes = [];
 let summary = {};
-const ASSET_VERSION = '20261011-shared-topics-1';
+const ASSET_VERSION = '20261011-legend-2';
 const versionedAsset = path => `${path}?v=${ASSET_VERSION}`;
 
 // Descriptive labels for the supplied network communities
@@ -107,17 +107,19 @@ let TOPIC_NAMES = [];
 
 
 // Shared topic colours: identical to light/dark plots and their legends.
-const TOPIC_PALETTE = ["#d6c5ff", "#ffdf57", "#419fff", "#aebd54", "#ff72bc", "#c58b65", "#909090", "#39d6b5", "#63c84c", "#ff8538", "#a269ec", "#55d9f4"].map(hex => [1,3,5].map(i => parseInt(hex.slice(i,i+2),16)/255));
-let focusTopics = new Set(), focusCommunity = 'all', focusRule = 'dominant';
+const TOPIC_PALETTE = ["#bab0d8", "#edc948", "#4e9ed4", "#9c9b54", "#e77ca5", "#b78c68", "#929292", "#76b7b2", "#ef7848", "#b16ac9", "#63a65c", "#e5ac32"].map(hex => [1,3,5].map(i => parseInt(hex.slice(i,i+2),16)/255));
+let focusTopics = new Set(), focusCommunities = new Set(), focusRule = 'dominant';
+let legendGroup = 'community';
 let focusThreshold = 0.3, focusDisplay = 'dim';
 let focusMask = null, focusBuffer = null, focusTotals = null;
-function focusIsActive() { return focusTopics.size > 0 || focusCommunity !== 'all'; }
+function focusIsActive() { return focusTopics.size > 0 || focusCommunities.size > 0; }
 function matchesFocus(node) {
-    const communityOK = focusCommunity === 'all'
-        || (focusCommunity === 'tail' ? !communityIsLabelled(node[F.community])
-            : String(node[F.community]) === focusCommunity);
+    const communityOK = !focusCommunities.size || focusCommunities.has(String(node[F.community]))
+        || (focusCommunities.has('tail') && node[F.community] >= 0 && !communityIsLabelled(node[F.community]))
+        || (focusCommunities.has('missing') && (node[F.community] == null || node[F.community] < 0));
     if (!communityOK) return false;
     if (!focusTopics.size) return true;
+    if (focusTopics.has(-1) && !Number.isInteger(node[F.dominantTopic])) return true;
     if (focusRule === 'dominant') return focusTopics.has(node[F.dominantTopic]);
     // ANY selected topic individually meets threshold, not their sum.
     for (const i of focusTopics) {
@@ -125,29 +127,38 @@ function matchesFocus(node) {
     }
     return false;
 }
-function initialiseFocusControls() {
-    document.getElementById('focus-topics').replaceChildren(...TOPIC_NAMES.map((name,i) => {
-        const label = document.createElement('label');label.className='focus-topic';
-        const input=document.createElement('input');input.type='checkbox';input.value=i;
-        input.addEventListener('change',()=>{
-            input.checked?focusTopics.add(i):focusTopics.delete(i);applyFocus();
-        });
-        const swatch=document.createElement('span');swatch.className='focus-swatch';swatch.dataset.topic=i;
-        const text=document.createElement('span');text.textContent=name;
-        label.append(input,swatch,text);return label;
-    }));
-    const communities=document.getElementById('focus-community');
-    for(const c of labelledCommunityOrder) {
-        const option=document.createElement('option');option.value=c;option.textContent=communityLabel(c);
-        communities.appendChild(option);
-    }
-    const tail=document.createElement('option');tail.value='tail';tail.textContent='Other communities (combined)';
-    communities.appendChild(tail);applyFocus();
-}
+function initialiseFocusControls() { applyFocus(); renderSelectionLegend(); }
 function clearFocus() {
-    focusTopics.clear();focusCommunity='all';
-    document.querySelectorAll('#focus-topics input').forEach(el=>el.checked=false);
-    document.getElementById('focus-community').value='all';applyFocus();
+    focusTopics.clear();focusCommunities.clear();applyFocus();renderSelectionLegend();
+}
+function renderSelectionLegend() {
+    const container=document.getElementById('selection-list');
+    container.replaceChildren();
+    const isTopic=legendGroup==='topic', selected=isTopic?focusTopics:focusCommunities;
+    const rgb=c=>`rgb(${c.map(x=>Math.round(x*255)).join(',')})`;
+    const items=isTopic?TOPIC_NAMES.map((name,i)=>({key:i,name,color:TOPIC_PALETTE[i]}))
+        :labelledCommunityOrder.map(c=>({key:String(c),name:communityLabel(c),color:COMMUNITY_COLORS[c%COMMUNITY_COLORS.length]}));
+    if(!isTopic && nodes.some(n=>n[F.community]>=0&&!communityIsLabelled(n[F.community])))
+        items.push({key:'tail',name:'Other communities (combined)',color:null});
+    if(nodes.some(n=>isTopic?!Number.isInteger(n[F.dominantTopic]):n[F.community]==null||n[F.community]<0))
+        items.push({key:isTopic?-1:'missing',name:'No data',color:GREY});
+    for(const item of items) {
+        const row=document.createElement('label');row.className='legend-choice';
+        const input=document.createElement('input');input.type='checkbox';input.checked=selected.has(item.key);
+        input.addEventListener('change',()=>{input.checked?selected.add(item.key):selected.delete(item.key);applyFocus();});
+        const swatch=document.createElement('span');swatch.className='legend-swatch'+(item.color?'':' legend-swatch-multi');
+        if(item.color)swatch.style.background=rgb(item.color);
+        const label=document.createElement('span');label.textContent=item.name;
+        row.append(input,swatch,label);container.appendChild(row);
+    }
+    updateSelectionTabs();
+}
+function updateSelectionTabs() {
+    for(const group of ['topic','community']) {
+        const button=document.getElementById('legend-'+group),count=group==='topic'?focusTopics.size:focusCommunities.size;
+        button.textContent=(group==='topic'?'Topics':'Communities')+(count?' ('+count+')':'');
+        button.setAttribute('aria-pressed',String(legendGroup===group));
+    }
 }
 function applyFocus() {
     if(!focusMask) focusMask=new Float32Array(nodes.length);
@@ -165,7 +176,8 @@ function applyFocus() {
     if(focusBuffer) focusBuffer.subdata(focusMask);
     pickDirty=true;document.getElementById('tooltip').style.display='none';
     document.getElementById('focus-threshold-wrap').hidden=focusRule!=='membership';
-    document.getElementById('focus-clear').disabled=!focusIsActive();
+    document.getElementById('selection-status').hidden=!focusIsActive();
+    updateSelectionTabs();
     updateFocusStatus();if(selectedNode) updateFoundStatus(selectedNode);
 }
 function updateFocusStatus() {
@@ -182,8 +194,6 @@ function updateFocusStatus() {
     const status=document.getElementById('focus-map-status');
     status.textContent=active?count.toLocaleString()+' selected'+(viewMode==='3d'?' · '+in3d.toLocaleString()+' in 3D':''):'';
     status.hidden=!active;
-    document.getElementById('focus-topic-count').textContent =
-        focusTopics.size ? ' ('+focusTopics.size+' selected)' : '';
 
 }
 function drawFocusedCloud(draw,props,is3d) {
@@ -929,13 +939,10 @@ function updateColors() {
             const topicIdx = document.getElementById('topic-select').value;
             const val = node[F.topic(topicIdx)];
             if (val !== null && val !== undefined) {
-                // Light grey (low) to saturated teal (high)
+                // Low membership is pale; high membership uses this topic's shared colour.
                 const t = Math.min(1, Math.max(0, val * 2.5));
-                color = [
-                    0.85 - t * 0.65,  // 0.85 -> 0.20
-                    0.85 - t * 0.25,  // 0.85 -> 0.60
-                    0.88 - t * 0.13   // 0.88 -> 0.75
-                ];
+                const target = TOPIC_PALETTE[Number(topicIdx)];
+                color = [0.85,0.85,0.88].map((channel,j)=>channel+t*(target[j]-channel));
                 validCount++;
             }
         }
@@ -964,10 +971,7 @@ function updateColors() {
 
     if (colorBuffer) colorBuffer.subdata(colors);
     updateLegend(mode);
-    document.querySelectorAll('.focus-swatch').forEach(el=>{
-        const c=TOPIC_PALETTE[Number(el.dataset.topic)];
-        el.style.backgroundColor='rgb('+c.map(v=>Math.round(v*255)).join(',')+')';
-    });
+
 }
 
 function updateLegend(mode) {
@@ -977,57 +981,8 @@ function updateLegend(mode) {
     // Helper to create RGB string
     const rgb = (c) => `rgb(${Math.round(c[0]*255)},${Math.round(c[1]*255)},${Math.round(c[2]*255)})`;
 
-    if (mode === 'community') {
-        // Discrete swatches: the labelled communities, largest first, then
-        // a single entry for the unlabelled long tail.
-        const comms = [...new Set(nodes.map(n => n[F.community]))]
-            .filter(c => c !== null && c >= 0);
-
-        let labelled = labelledCommunityOrder.filter(c => communityIsLabelled(c));
-        if (labelled.length === 0) {
-            labelled = comms.slice().sort((a, b) => a - b).slice(0, 12);
-        }
-        const nTail = comms.length - labelled.length;
-
-        const items = labelled.map(c => ({
-            label: communityLabel(c),
-            color: COMMUNITY_COLORS[c % COMMUNITY_COLORS.length]
-        }));
-        if (nTail > 0) {
-            items.push({
-                label: `${nTail.toLocaleString()} long-tail communities`,
-                color: null
-            });
-        }
-        items.push({ label: 'No data', color: GREY });
-
-        for (const item of items) {
-            const div = document.createElement('div');
-            div.className = 'legend-item';
-            const swatch = item.color
-                ? `<span class="legend-swatch" style="background:${rgb(item.color)}"></span>`
-                : `<span class="legend-swatch legend-swatch-multi"></span>`;
-            div.innerHTML = `${swatch}<span class="legend-label">${item.label}</span>`;
-            container.appendChild(div);
-        }
-    }
-    else if (mode === 'dominant_topic') {
-        // Discrete swatches for topics
-        for (let i = 0; i < TOPIC_NAMES.length; i++) {
-            const div = document.createElement('div');
-            div.className = 'legend-item';
-            div.innerHTML = `
-                <span class="legend-swatch" style="background:${rgb(TOPIC_PALETTE[i % TOPIC_PALETTE.length])}"></span>
-                <span class="legend-label">${escapeHtml(TOPIC_NAMES[i])}</span>
-            `;
-            container.appendChild(div);
-        }
-        const noData = document.createElement('div');
-        noData.className = 'legend-item';
-        noData.innerHTML = `<span class="legend-swatch" style="background:${rgb(GREY)}"></span><span class="legend-label">No data</span>`;
-        container.appendChild(noData);
-    }
-    else if (mode === 'sentiment') {
+    renderSelectionLegend();
+    if (mode === 'sentiment') {
         // Gradient bar for sentiment
         const sentType = document.getElementById('sentiment-select').value;
         const gradientDiv = document.createElement('div');
@@ -1057,7 +1012,7 @@ function updateLegend(mode) {
         const gradientDiv = document.createElement('div');
         gradientDiv.className = 'legend-gradient-wrap';
         gradientDiv.innerHTML = `
-            <div class="legend-gradient" style="background: linear-gradient(to right, ${rgb([0.85,0.85,0.88])}, ${rgb([0.20,0.60,0.75])})"></div>
+            <div class="legend-gradient" style="background: linear-gradient(to right, ${rgb([0.85,0.85,0.88])}, ${rgb(TOPIC_PALETTE[Number(document.getElementById('topic-select').value)])})"></div>
             <div class="legend-gradient-labels"><span>Low</span><span>High</span></div>
         `;
         container.appendChild(gradientDiv);
@@ -1439,18 +1394,16 @@ function setupEventListeners() {
         pickDirty=true;
     });
 
-    // Native change events preserve keyboard radio navigation.
-    document.querySelectorAll('input[name="color-mode"]').forEach(input=>{
-        input.addEventListener('change',()=>{
-            colorMode=input.value;
-            document.querySelectorAll('.radio-item').forEach(item=>item.classList.toggle('active',item.dataset.mode===colorMode));
-            document.getElementById('sentiment-options').classList.toggle('visible',colorMode==='sentiment');
-            document.getElementById('topic-options').classList.toggle('visible',colorMode==='topic_membership');
-            document.getElementById('emotion-options').classList.toggle('visible',colorMode==='emotion');
-            updateColors();
-        });
+    document.getElementById('colour-by').addEventListener('change',e=>{
+        colorMode=e.target.value;
+        if(colorMode==='community')legendGroup='community';
+        if(colorMode==='dominant_topic'||colorMode==='topic_membership')legendGroup='topic';
+        document.getElementById('sentiment-options').classList.toggle('visible',colorMode==='sentiment');
+        document.getElementById('topic-options').classList.toggle('visible',colorMode==='topic_membership');
+        document.getElementById('emotion-options').classList.toggle('visible',colorMode==='emotion');
+        updateColors();
     });
-    document.getElementById('focus-community').addEventListener('change',e=>{focusCommunity=e.target.value;applyFocus();});
+    for(const group of ['topic','community'])document.getElementById('legend-'+group).addEventListener('click',()=>{legendGroup=group;renderSelectionLegend();});
     document.getElementById('focus-rule').addEventListener('change',e=>{focusRule=e.target.value;applyFocus();});
     document.getElementById('focus-threshold').addEventListener('input',e=>{
         focusThreshold=Number(e.target.value)/100;
