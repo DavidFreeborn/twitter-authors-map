@@ -22,7 +22,7 @@ assert.ok(!html.includes('<script>'));
 assert.ok(run(`examplePostHtml({id:'missing'})`).includes('No sufficiently informative'));
 const labels=JSON.parse(fs.readFileSync(path.join(root,'data/community_labels.json')));
 const summary=JSON.parse(fs.readFileSync(path.join(root,'data/build_summary.json')));
-assert.equal(summary.topic_labels.length,8);
+assert.equal(summary.topic_labels.length,12);
 assert.ok(summary.topic_labels.every(s=>!/^\d+:/.test(s)));
 assert.ok(Object.values(labels.communities).every(r=>!/^C\d+:/.test(r.display_label)));
 assert.ok(source.includes("fetch(versionedAsset('data/nodes.json'))"));

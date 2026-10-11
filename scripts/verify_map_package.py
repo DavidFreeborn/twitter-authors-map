@@ -16,11 +16,11 @@ assert examples['n_total']==len(nodes)
 assert examples['n']==len(examples['posts'])
 assert examples['n']+examples['none_available']==len(nodes)
 assert all(len(r)==4 and r[0].isdigit() and r[3].strip() and len(r[3])<=280 for r in examples['posts'].values())
-assert len(s['topic_labels'])==8
+assert len(s['topic_labels'])==12
 for n in nodes:
-    assert all(math.isfinite(n[k]) for k in ['x','y','sp','sn','sg']+[f't{i}' for i in range(8)])
-    assert abs(sum(n[f't{i}'] for i in range(8))-1)<1e-4
-    assert 0 <= n['dt'] < 8
+    assert all(math.isfinite(n[k]) for k in ['x','y','sp','sn','sg']+[f't{i}' for i in range(12)])
+    assert abs(sum(n[f't{i}'] for i in range(12))-1)<1e-4
+    assert 0 <= n['dt'] < 12
 counts={}
 for n in nodes: counts[str(n['c'])]=counts.get(str(n['c']),0)+1
 for k,r in labels['communities'].items(): assert r['n_authors']==counts[k]

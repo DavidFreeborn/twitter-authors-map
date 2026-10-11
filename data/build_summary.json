@@ -10,25 +10,42 @@
   "seed": 42,
   "community_algorithm": "leiden_directed",
   "topic_labels": [
-    "Crypto & token promotion",
+    "Education & fandom (mixed)",
+    "AI images & avatars (mixed)",
+    "AI art & artists' debate",
+    "Writing, reviews & mixed content",
+    "Games & fandom (mixed)",
     "AI research & industry",
-    "AI art & NFT posting",
-    "Politics & launchpads (mixed)",
-    "AI entertainment & memes",
-    "AI tools, writing & code",
-    "General AI & art discussion",
-    "Artists' objections to AI"
+    "Crypto promotion & giveaways",
+    "AI crypto launchpads",
+    "General AI use, tools & writing",
+    "AI art sharing & NFTs",
+    "Politics & AI bias",
+    "Crypto & blockchain"
   ],
   "note": "Coordinates use matched-to-matched edges. Disconnected component positions are arbitrary.",
   "topic_colours": [
-    "#999999",
+    "#b3a336",
+    "#e6ab02",
+    "#387db8",
+    "#66a61e",
+    "#f782bf",
     "#a65729",
+    "#8c8c8c",
+    "#1b9e77",
+    "#4db04a",
     "#ff8000",
     "#994fa3",
-    "#f782bf",
-    "#4db04a",
-    "#fc8c61",
-    "#387db8"
+    "#56b4e9"
   ],
-  "analysis_status": "Exploratory reference; topic memberships are sensitive to model initialization."
+  "analysis_status": "User-selected twelve-topic exploratory reference; repeated-fit evidence is documented in METHODS.md.",
+  "topic_model": {
+    "K": 12,
+    "representation": "tfidf_unigram",
+    "alpha": 0.3,
+    "eta": 0.1,
+    "seed": 42,
+    "max_iter": 50,
+    "selection": "User-selected existing full-population fit after comparing8and12 topics"
+  }
 }
