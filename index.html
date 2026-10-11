@@ -695,7 +695,6 @@
 #focus-threshold{width:100%}
 #focus-threshold-wrap[hidden],#focus-map-status[hidden]{display:none}
 #focus-map-status{position:absolute;top:68px;left:16px;background:#111119e8;color:#eee;padding:5px 8px;font:13px/1.4 system-ui,sans-serif;pointer-events:none}
-#topic-palette{margin-bottom:12px}
 button:disabled{opacity:.5;cursor:default}
 </style>
 </head>
@@ -800,8 +799,6 @@ button:disabled{opacity:.5;cursor:default}
                 <!-- Legend -->
                 <div class="control-section">
                     <h2>Legend</h2>
-                    <label class="focus-label" for="topic-palette">Topic colours</label>
-                    <select class="sub-select" id="topic-palette"><option value="distinct">Distinct atlas colours</option><option value="figure">Match blog figures</option></select>
                     <div class="legend" id="legend"></div>
                 </div>
 
@@ -868,6 +865,6 @@ button:disabled{opacity:.5;cursor:default}
     </div>
 
     <script src="vendor/regl.min.js"></script>
-    <script src="app.js?v=20261011-focus-1"></script>
+    <script src="app.js?v=20261011-shared-topics-1"></script>
 </body>
 </html>
