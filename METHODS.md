@@ -16,7 +16,9 @@ Coordinates do not use topics, sentiments, emotions or community labels. Proximi
 
 ## Topics and affect
 
-The eight-topic exploratory reference uses network-specific author documents containing all eligible posts, including retweets: TF-IDF LDA, alpha 0.3, eta 0.01, random seed 42, full fitted vocabulary and 50 maximum iterations. It replaces a collapsed candidate. Topic assignments remain sensitive to initialization: a controlled seed comparison gave about 61% agreement on leading topics after topic matching. Individual labels are not a stable taxonomy; some detailed community-topic associations reverse across fits.
+The twelve-topic exploratory reference uses network-specific author documents containing all eligible posts, including retweets: unigram TF-IDF LDA, alpha 0.3, eta 0.1, random seed 42, the full fitted unigram vocabulary and 50 maximum iterations. It was selected after comparing the saved eight- and twelve-topic fits, rather than as the automatic grid winner. The author population, corpus, sentiment/emotion scores and network coordinates are unchanged.
+
+A controlled repeat with seed 43, identical author documents and exactly the same fitted vocabulary and IDF weights gave 76.5% agreement on leading topics after matching topics by author-membership similarity. Topic-weighted net-sentiment rankings correlated 0.87; three matched topics crossed the population-average net-sentiment reference. Five of 54 substantial community-topic enrichment cells reversed direction (communities with at least 1,000 authors; absolute log2 enrichment at least 0.5 in both runs). These filters describe the comparison, not a universal robustness threshold. Some matched topics have different meanings between fits, so the agreement percentage is not evidence that all twelve themes are stable. Individual labels remain exploratory. The earlier eight-topic agreement figure does not describe this model.
 
 Sentiment and emotion attributes are author-level averages of stored classifier probabilities. They describe language, not verified beliefs, intentions or feelings. Emotion scores are non-exclusive. Search-term ambiguity admits some unrelated uses of words or names. The current population and topic method differ from the historical map; topic IDs do not correspond across versions.
 
@@ -29,3 +31,5 @@ Example posts are independently selected from the current corpus for exactly the
 ## Historical version
 
 The previous published map (198,326 authors and 12 topics) is preserved by Git tag `before-corrected-rerun-2026-10-11` in this repository. Restoring that tagged tree on the publishing branch restores the former website, including its data and example posts. The tag identifies the former published version, rather than merely a source-code snapshot.
+
+The corrected eight-topic edition is additionally preserved by Git tag `before-twelve-topic-update-2026-10-11`, which identifies its actual published tree.

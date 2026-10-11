@@ -20,7 +20,7 @@
   "render_indices": {
     "sha256": "2c7dbd702473f56f54d885206342bf09bb62459b0a7acbc1cebf3cfaa0f7bf20"
   },
-  "viewer_nodes_sha256": "c5fa4fb2af11ff727170636c02f4c861ca631539dd5d980665c016d9dac15845",
+  "viewer_nodes_sha256": "8d4e253cdadcd0c76f242636801613cb46f41e18738cf8ed5479af197fa88f7b",
   "solver": {
     "median_log_weighted_degree": 2.0794415416798357,
     "unscaled_source_rms": 0.27419379536123595,
