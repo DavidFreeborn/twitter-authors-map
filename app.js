@@ -6,7 +6,7 @@
 // Data
 let nodes = [];
 let summary = {};
-const ASSET_VERSION = '20261011-twelve-topics-1';
+const ASSET_VERSION = '20261011-focus-1';
 const versionedAsset = path => `${path}?v=${ASSET_VERSION}`;
 
 // Descriptive labels for the supplied network communities
@@ -104,7 +104,99 @@ const COMMUNITY_COLORS = [
 
 let TOPIC_NAMES = [];
 
-const TOPIC_PALETTE = [[0.7019607843137254, 0.6392156862745098, 0.21176470588235294], [0.9019607843137255, 0.6705882352941176, 0.00784313725490196], [0.2196078431372549, 0.49019607843137253, 0.7215686274509804], [0.4, 0.6509803921568628, 0.11764705882352941], [0.9686274509803922, 0.5098039215686274, 0.7490196078431373], [0.6509803921568628, 0.3411764705882353, 0.1607843137254902], [0.5490196078431373, 0.5490196078431373, 0.5490196078431373], [0.10588235294117647, 0.6196078431372549, 0.4666666666666667], [0.30196078431372547, 0.6901960784313725, 0.2901960784313726], [1.0, 0.5019607843137255, 0.0], [0.6, 0.30980392156862746, 0.6392156862745098], [0.33725490196078434, 0.7058823529411765, 0.9137254901960784]];
+const FIGURE_TOPIC_PALETTE = [[0.7019607843137254, 0.6392156862745098, 0.21176470588235294], [0.9019607843137255, 0.6705882352941176, 0.00784313725490196], [0.2196078431372549, 0.49019607843137253, 0.7215686274509804], [0.4, 0.6509803921568628, 0.11764705882352941], [0.9686274509803922, 0.5098039215686274, 0.7490196078431373], [0.6509803921568628, 0.3411764705882353, 0.1607843137254902], [0.5490196078431373, 0.5490196078431373, 0.5490196078431373], [0.10588235294117647, 0.6196078431372549, 0.4666666666666667], [0.30196078431372547, 0.6901960784313725, 0.2901960784313726], [1.0, 0.5019607843137255, 0.0], [0.6, 0.30980392156862746, 0.6392156862745098], [0.33725490196078434, 0.7058823529411765, 0.9137254901960784]];
+
+
+// Presentation-only atlas palette; figure colours remain available.
+const DISTINCT_TOPIC_PALETTE = ['#d6c5ff','#ffdf57','#419fff','#aebd54',
+    '#ff72bc','#c58b65','#f2f2ee','#39d6b5','#63c84c','#ff8538','#a269ec','#55d9f4']
+    .map(hex => [1,3,5].map(i => parseInt(hex.slice(i,i+2),16)/255));
+let TOPIC_PALETTE = DISTINCT_TOPIC_PALETTE;
+let focusTopics = new Set(), focusCommunity = 'all', focusRule = 'dominant';
+let focusThreshold = 0.3, focusDisplay = 'dim';
+let focusMask = null, focusBuffer = null, focusTotals = null;
+function focusIsActive() { return focusTopics.size > 0 || focusCommunity !== 'all'; }
+function matchesFocus(node) {
+    const communityOK = focusCommunity === 'all'
+        || (focusCommunity === 'tail' ? !communityIsLabelled(node[F.community])
+            : String(node[F.community]) === focusCommunity);
+    if (!communityOK) return false;
+    if (!focusTopics.size) return true;
+    if (focusRule === 'dominant') return focusTopics.has(node[F.dominantTopic]);
+    // ANY selected topic individually meets threshold, not their sum.
+    for (const i of focusTopics) {
+        if (Number.isFinite(node[F.topic(i)]) && node[F.topic(i)] >= focusThreshold) return true;
+    }
+    return false;
+}
+function initialiseFocusControls() {
+    document.getElementById('focus-topics').replaceChildren(...TOPIC_NAMES.map((name,i) => {
+        const label = document.createElement('label');label.className='focus-topic';
+        const input=document.createElement('input');input.type='checkbox';input.value=i;
+        input.addEventListener('change',()=>{
+            input.checked?focusTopics.add(i):focusTopics.delete(i);applyFocus();
+        });
+        const swatch=document.createElement('span');swatch.className='focus-swatch';swatch.dataset.topic=i;
+        const text=document.createElement('span');text.textContent=name;
+        label.append(input,swatch,text);return label;
+    }));
+    const communities=document.getElementById('focus-community');
+    for(const c of labelledCommunityOrder) {
+        const option=document.createElement('option');option.value=c;option.textContent=communityLabel(c);
+        communities.appendChild(option);
+    }
+    const tail=document.createElement('option');tail.value='tail';tail.textContent='Other communities (combined)';
+    communities.appendChild(tail);applyFocus();
+}
+function clearFocus() {
+    focusTopics.clear();focusCommunity='all';
+    document.querySelectorAll('#focus-topics input').forEach(el=>el.checked=false);
+    document.getElementById('focus-community').value='all';applyFocus();
+}
+function applyFocus() {
+    if(!focusMask) focusMask=new Float32Array(nodes.length);
+    let count=0,in3d=0,net=0,netCount=0;
+    for(let i=0;i<nodes.length;i++) {
+        const node=nodes[i],included=matchesFocus(node);focusMask[i]=included?1:0;
+        if(included) {
+            count++;if(visible3D?.[i]) in3d++;
+            if(Number.isFinite(node[F.positive])&&Number.isFinite(node[F.negative])) {
+                net+=node[F.positive]-node[F.negative];netCount++;
+            }
+        }
+    }
+    focusTotals={count,in3d,net:netCount?net/netCount:null};
+    if(focusBuffer) focusBuffer.subdata(focusMask);
+    pickDirty=true;document.getElementById('tooltip').style.display='none';
+    document.getElementById('focus-threshold-wrap').hidden=focusRule!=='membership';
+    document.getElementById('focus-clear').disabled=!focusIsActive();
+    updateFocusStatus();if(selectedNode) updateFoundStatus(selectedNode);
+}
+function updateFocusStatus() {
+    if(!focusTotals)return;
+    const {count,in3d,net}=focusTotals,active=focusIsActive();
+    document.getElementById('focus-status').textContent=active
+        ?count.toLocaleString()+' selected of '+nodes.length.toLocaleString()+' authors'
+        :'All '+nodes.length.toLocaleString()+' authors';
+    document.getElementById('focus-details').textContent=
+        (viewMode==='3d'?in3d.toLocaleString()+' in 3D; '+(count-in3d).toLocaleString()+' available only in 2D. ':'')
+        +(active&&net!==null?'Selected authors’ mean net sentiment: '+fmtSigned(net)+'. ':'')
+        +(active?(focusDisplay==='dim'?'Others are dimmed. ':'Others are hidden. ')
+            +'Change Colour By to inspect this same group.':'Choose topics or a community to focus; the network layout stays fixed.');
+    const status=document.getElementById('focus-map-status');
+    status.textContent=active?count.toLocaleString()+' selected'+(viewMode==='3d'?' · '+in3d.toLocaleString()+' in 3D':''):'';
+    status.hidden=!active;
+    document.getElementById('focus-topic-count').textContent =
+        focusTopics.size ? ' ('+focusTopics.size+' selected)' : '';
+
+}
+function drawFocusedCloud(draw,props,is3d) {
+    if(!focusIsActive()){draw({...props,focusPass:-1});return;}
+    if(focusDisplay==='dim')draw({...props,focusPass:0});
+    // Context must not occlude the selected group in the depth buffer.
+    if(is3d)regl.clear({depth:1});
+    draw({...props,focusPass:1});
+}
 
 // Sentiment colours are expressed as
 // exact 8-bit RGB fractions so WebGL points and CSS legends render identically.
@@ -416,6 +508,7 @@ async function init() {
         // Initialize WebGL
         initWebGL();
 
+        initialiseFocusControls();
         // Build initial colors
         updateColors();
 
@@ -473,6 +566,8 @@ function initWebGL() {
     positionBuffer3D = regl.buffer({ data: new Float32Array(0), usage: 'static' });
     visibilityBuffer3D = regl.buffer({ data: new Float32Array(nodes.length), usage: 'static' });
     colorBuffer = regl.buffer({ data: colors, usage: 'dynamic' });
+    focusMask=new Float32Array(nodes.length).fill(1);
+    focusBuffer=regl.buffer({data:focusMask,usage:'dynamic'});
     sizeBuffer = regl.buffer(sizes);
     pickIdBuffer = regl.buffer(pickIds);
     selectedPosition3DBuffer = regl.buffer(new Float32Array([0, 0, 0]));
@@ -485,12 +580,15 @@ function initWebGL() {
             attribute vec2 position;
             attribute vec3 color;
             attribute float size;
+            attribute float focused;
             uniform vec2 viewOffset;
             uniform float viewScale;
             uniform vec2 resolution;
+            varying float vFocused;
             varying vec3 vColor;
 
             void main() {
+                vFocused=focused;
                 vec2 pos = (position - viewOffset) * viewScale;
                 pos.x *= resolution.y / resolution.x;
                 gl_Position = vec4(pos, 0, 1);
@@ -500,22 +598,29 @@ function initWebGL() {
         `,
         frag: `
             precision highp float;
+            uniform float focusPass;
+            varying float vFocused;
             varying vec3 vColor;
 
             void main() {
+                if(focusPass>0.5 && vFocused<0.5)discard;
+                if(focusPass>-0.5 && focusPass<0.5 && vFocused>0.5)discard;
                 vec2 cxy = 2.0 * gl_PointCoord - 1.0;
                 float r = dot(cxy, cxy);
                 if (r > 1.0) discard;
                 float alpha = 1.0 - smoothstep(0.5, 1.0, r);
-                gl_FragColor = vec4(vColor, alpha);
+                gl_FragColor = focusPass>-0.5 && focusPass<0.5
+                    ?vec4(vec3(0.36,0.38,0.43),alpha*0.16):vec4(vColor,alpha);
             }
         `,
         attributes: {
             position: positionBuffer2D,
             color: colorBuffer,
+            focused: focusBuffer,
             size: sizeBuffer
         },
         uniforms: {
+            focusPass: regl.prop('focusPass'),
             viewOffset: regl.prop('viewOffset'),
             viewScale: regl.prop('viewScale'),
             resolution: regl.prop('resolution')
@@ -537,13 +642,16 @@ function initWebGL() {
             attribute float visibility;
             attribute vec3 color;
             attribute float size;
+            attribute float focused;
             uniform mat4 view;
             uniform mat4 projection;
             uniform float pointScale;
+            varying float vFocused;
             varying vec3 vColor;
             varying float vDepth;
 
             void main() {
+                vFocused=focused;
                 if (visibility < 0.5) {
                     gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
                     gl_PointSize = 0.0;
@@ -561,12 +669,16 @@ function initWebGL() {
         `,
         frag: `
             precision highp float;
+            uniform float focusPass;
             uniform float fogNear;
             uniform float fogFar;
+            varying float vFocused;
             varying vec3 vColor;
             varying float vDepth;
 
             void main() {
+                if(focusPass>0.5 && vFocused<0.5)discard;
+                if(focusPass>-0.5 && focusPass<0.5 && vFocused>0.5)discard;
                 vec2 cxy = 2.0 * gl_PointCoord - 1.0;
                 float r = dot(cxy, cxy);
                 if (r > 1.0) discard;
@@ -574,16 +686,19 @@ function initWebGL() {
                 if (edge < 0.025) discard;
                 float fog = 1.0 - smoothstep(fogNear, fogFar, vDepth);
                 float alpha = edge * mix(0.06, 0.56, fog);
-                gl_FragColor = vec4(vColor, alpha);
+                gl_FragColor = focusPass>-0.5 && focusPass<0.5
+                    ?vec4(vec3(0.36,0.38,0.43),alpha*0.16):vec4(vColor,alpha);
             }
         `,
         attributes: {
             position: positionBuffer3D,
             visibility: visibilityBuffer3D,
             color: colorBuffer,
+            focused: focusBuffer,
             size: sizeBuffer
         },
         uniforms: {
+            focusPass: regl.prop('focusPass'),
             view: regl.prop('view'),
             projection: regl.prop('projection'),
             pointScale: regl.prop('pointScale'),
@@ -607,6 +722,7 @@ function initWebGL() {
             precision highp float;
             attribute vec3 position;
             attribute float visibility;
+            attribute float focused;
             attribute float size;
             attribute float pickId;
             uniform mat4 view;
@@ -616,7 +732,7 @@ function initWebGL() {
             varying float vPickId;
 
             void main() {
-                if (visibility < 0.5) {
+                if (visibility < 0.5 || focused < 0.5) {
                     gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
                     gl_PointSize = 0.0;
                     vPickId = 0.0;
@@ -646,6 +762,7 @@ function initWebGL() {
         attributes: {
             position: positionBuffer3D,
             visibility: visibilityBuffer3D,
+            focused: focusBuffer,
             size: sizeBuffer,
             pickId: pickIdBuffer
         },
@@ -730,14 +847,14 @@ function render(now) {
         updateCameraMatrices(canvas, deltaSeconds);
         const fogNear = Math.max(0.15, camera3D.distance - 1.15);
         const fogFar = camera3D.distance + 1.7;
-        drawPoints3D({
+        drawFocusedCloud(drawPoints3D, {
             view: camera3D.view,
             projection: camera3D.projection,
             pointScale: 1.65 * dpr,
             fogNear,
             fogFar
-        });
-        if (selectedNode && nodeVisibleIn3D(selectedNode)) {
+        }, true);
+        if (selectedNode && nodeVisibleIn3D(selectedNode) && matchesFocus(selectedNode)) {
             drawSelected3D({
                 view: camera3D.view,
                 projection: camera3D.projection,
@@ -745,11 +862,11 @@ function render(now) {
             });
         }
     } else {
-        drawPoints2D({
+        drawFocusedCloud(drawPoints2D, {
             viewOffset: [viewX, viewY],
             viewScale: viewScale,
             resolution: [canvas.width, canvas.height]
-        });
+        }, false);
     }
 
     lastFrameTime = now;
@@ -851,6 +968,10 @@ function updateColors() {
 
     if (colorBuffer) colorBuffer.subdata(colors);
     updateLegend(mode);
+    document.querySelectorAll('.focus-swatch').forEach(el=>{
+        const c=TOPIC_PALETTE[Number(el.dataset.topic)];
+        el.style.backgroundColor='rgb('+c.map(v=>Math.round(v*255)).join(',')+')';
+    });
 }
 
 function updateLegend(mode) {
@@ -1069,6 +1190,7 @@ async function setViewMode(mode) {
         updateSelected3DPosition();
     }
     pickDirty = true;
+    applyFocus();
     updateProjectionUi();
 }
 
@@ -1304,27 +1426,44 @@ function setupEventListeners() {
         touchDown = null;
     }, { passive: false });
 
-    // Color mode radio buttons
-    const radioItems = document.querySelectorAll('.radio-item');
-    radioItems.forEach(item => {
-        item.addEventListener('click', () => {
-            // Update active state
-            radioItems.forEach(r => r.classList.remove('active'));
-            item.classList.add('active');
+    canvas.addEventListener('keydown', e => {
+        if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','Home'].includes(e.key)) return;
+        e.preventDefault();
+        if(e.key==='Home') { fitToScreen();return; }
+        if(e.key==='+'||e.key==='=') {zoomIn();return;}
+        if(e.key==='-') {zoomOut();return;}
+        const dx=e.key==='ArrowLeft'?-1:e.key==='ArrowRight'?1:0;
+        const dy=e.key==='ArrowUp'?1:e.key==='ArrowDown'?-1:0;
+        if(viewMode==='2d') {
+            viewX+=dx*0.12/viewScale;viewY+=dy*0.12/viewScale;
+        } else {
+            camera3D.desiredYaw+=dx*0.1;
+            camera3D.desiredPitch=clamp(camera3D.desiredPitch+dy*0.1,-1.45,1.45);
+        }
+        pickDirty=true;
+    });
 
-            // Get mode from data attribute
-            const mode = item.dataset.mode;
-            if (mode) {
-                colorMode = mode;
-
-                // Show/hide sub-options
-                document.getElementById('sentiment-options').classList.toggle('visible', mode === 'sentiment');
-                document.getElementById('topic-options').classList.toggle('visible', mode === 'topic_membership');
-                document.getElementById('emotion-options').classList.toggle('visible', mode === 'emotion');
-
-                updateColors();
-            }
+    // Native change events preserve keyboard radio navigation.
+    document.querySelectorAll('input[name="color-mode"]').forEach(input=>{
+        input.addEventListener('change',()=>{
+            colorMode=input.value;
+            document.querySelectorAll('.radio-item').forEach(item=>item.classList.toggle('active',item.dataset.mode===colorMode));
+            document.getElementById('sentiment-options').classList.toggle('visible',colorMode==='sentiment');
+            document.getElementById('topic-options').classList.toggle('visible',colorMode==='topic_membership');
+            document.getElementById('emotion-options').classList.toggle('visible',colorMode==='emotion');
+            updateColors();
         });
+    });
+    document.getElementById('focus-community').addEventListener('change',e=>{focusCommunity=e.target.value;applyFocus();});
+    document.getElementById('focus-rule').addEventListener('change',e=>{focusRule=e.target.value;applyFocus();});
+    document.getElementById('focus-threshold').addEventListener('input',e=>{
+        focusThreshold=Number(e.target.value)/100;
+        document.getElementById('focus-threshold-value').textContent=e.target.value+'%';applyFocus();
+    });
+    document.getElementById('focus-display').addEventListener('change',e=>{focusDisplay=e.target.value;updateFocusStatus();});
+    document.getElementById('focus-clear').addEventListener('click',clearFocus);
+    document.getElementById('topic-palette').addEventListener('change',e=>{
+        TOPIC_PALETTE=e.target.value==='figure'?FIGURE_TOPIC_PALETTE:DISTINCT_TOPIC_PALETTE;updateColors();
     });
 
     // Sub-selects
@@ -1380,7 +1519,9 @@ function pickNodeAt2D(e) {
     let minDist = Infinity;
     const threshold = 0.08 / viewScale;
 
-    for (const node of nodes) {
+    for (let i=0;i<nodes.length;i++) {
+        if (focusMask && focusMask[i]===0) continue;
+        const node=nodes[i];
         const dx = node.x - dataX;
         const dy = node.y - dataY;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -1605,6 +1746,7 @@ function updateFoundStatus(node) {
     status.className = 'search-status found';
     status.innerHTML = `Found <strong>${escapeHtml(node[F.id])}</strong><br>`
         + escapeHtml(communityLabel(node[F.community]))
+        + (!matchesFocus(node)?'<br>Outside the selected group. Clear focus to show on map.':'')
         + (viewMode === '3d' && !nodeVisibleIn3D(node)
             ? '<br>Outside the 3D giant component' : '');
 }
