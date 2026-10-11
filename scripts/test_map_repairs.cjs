@@ -23,6 +23,7 @@ assert.ok(run(`examplePostHtml({id:'missing'})`).includes('No sufficiently infor
 const labels=JSON.parse(fs.readFileSync(path.join(root,'data/community_labels.json')));
 const summary=JSON.parse(fs.readFileSync(path.join(root,'data/build_summary.json')));
 assert.equal(summary.topic_labels.length,12);
+assert.deepEqual(summary.topic_colours.map(hex=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255)), JSON.parse(run('JSON.stringify(TOPIC_PALETTE)')), 'bundle palette matches displayed topic colours');
 assert.ok(summary.topic_labels.every(s=>!/^\d+:/.test(s)));
 assert.ok(Object.values(labels.communities).every(r=>!/^C\d+:/.test(r.display_label)));
 assert.ok(source.includes("fetch(versionedAsset('data/nodes.json'))"));
