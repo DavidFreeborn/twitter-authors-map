@@ -6,7 +6,7 @@
 // Data
 let nodes = [];
 let summary = {};
-const ASSET_VERSION = '20261011-focus-1';
+const ASSET_VERSION = '20261011-shared-topics-1';
 const versionedAsset = path => `${path}?v=${ASSET_VERSION}`;
 
 // Descriptive labels for the supplied network communities
@@ -104,14 +104,10 @@ const COMMUNITY_COLORS = [
 
 let TOPIC_NAMES = [];
 
-const FIGURE_TOPIC_PALETTE = [[0.7019607843137254, 0.6392156862745098, 0.21176470588235294], [0.9019607843137255, 0.6705882352941176, 0.00784313725490196], [0.2196078431372549, 0.49019607843137253, 0.7215686274509804], [0.4, 0.6509803921568628, 0.11764705882352941], [0.9686274509803922, 0.5098039215686274, 0.7490196078431373], [0.6509803921568628, 0.3411764705882353, 0.1607843137254902], [0.5490196078431373, 0.5490196078431373, 0.5490196078431373], [0.10588235294117647, 0.6196078431372549, 0.4666666666666667], [0.30196078431372547, 0.6901960784313725, 0.2901960784313726], [1.0, 0.5019607843137255, 0.0], [0.6, 0.30980392156862746, 0.6392156862745098], [0.33725490196078434, 0.7058823529411765, 0.9137254901960784]];
 
 
-// Presentation-only atlas palette; figure colours remain available.
-const DISTINCT_TOPIC_PALETTE = ['#d6c5ff','#ffdf57','#419fff','#aebd54',
-    '#ff72bc','#c58b65','#f2f2ee','#39d6b5','#63c84c','#ff8538','#a269ec','#55d9f4']
-    .map(hex => [1,3,5].map(i => parseInt(hex.slice(i,i+2),16)/255));
-let TOPIC_PALETTE = DISTINCT_TOPIC_PALETTE;
+// Shared topic colours: identical to light/dark plots and their legends.
+const TOPIC_PALETTE = ["#d6c5ff", "#ffdf57", "#419fff", "#aebd54", "#ff72bc", "#c58b65", "#909090", "#39d6b5", "#63c84c", "#ff8538", "#a269ec", "#55d9f4"].map(hex => [1,3,5].map(i => parseInt(hex.slice(i,i+2),16)/255));
 let focusTopics = new Set(), focusCommunity = 'all', focusRule = 'dominant';
 let focusThreshold = 0.3, focusDisplay = 'dim';
 let focusMask = null, focusBuffer = null, focusTotals = null;
@@ -1462,9 +1458,7 @@ function setupEventListeners() {
     });
     document.getElementById('focus-display').addEventListener('change',e=>{focusDisplay=e.target.value;updateFocusStatus();});
     document.getElementById('focus-clear').addEventListener('click',clearFocus);
-    document.getElementById('topic-palette').addEventListener('change',e=>{
-        TOPIC_PALETTE=e.target.value==='figure'?FIGURE_TOPIC_PALETTE:DISTINCT_TOPIC_PALETTE;updateColors();
-    });
+
 
     // Sub-selects
     document.getElementById('sentiment-select').addEventListener('change', updateColors);
