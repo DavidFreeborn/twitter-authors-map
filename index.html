@@ -682,14 +682,18 @@
 </style>
 
 <style>
-#focus-controls{border-bottom:1px solid var(--border)}
-#focus-controls summary{cursor:pointer;padding:8px 0;font-weight:600}
-#focus-topics{display:grid;gap:2px;margin:6px 0 12px;max-height:290px;overflow-y:auto}
-.focus-topic{display:grid;grid-template-columns:18px 10px 1fr;gap:8px;align-items:center;padding:6px 0;cursor:pointer;font:14px/1.35 system-ui,sans-serif}
-.focus-topic input{margin:0;accent-color:#b9caff}
-.focus-swatch{width:10px;height:10px;display:inline-block}
+#focus-options summary{cursor:pointer;padding:8px 0;font-size:14px}
+.legend-tabs{display:flex;border-bottom:1px solid var(--border);margin:4px 0 8px}
+.legend-tabs button{flex:1;background:none;color:inherit;border:0;border-bottom:2px solid transparent;padding:8px 2px;cursor:pointer;font:14px system-ui,sans-serif}
+.legend-tabs button[aria-pressed="true"]{border-bottom-color:#b9caff;font-weight:600}
+.legend-choice{display:grid;grid-template-columns:16px 12px 1fr;gap:8px;align-items:center;padding:5px 0;cursor:pointer;font:14px/1.3 system-ui,sans-serif}
+.legend-choice input{margin:0;width:15px;height:15px;accent-color:#b9caff}
+.legend-choice .legend-swatch{width:10px;height:10px;margin:0}
+.legend-hint{color:#b6b6c7;font:13px/1.4 system-ui,sans-serif;margin:0 0 8px}
+[hidden]{display:none!important}
 .focus-label{display:block;margin:10px 0 5px;font:14px/1.4 system-ui,sans-serif}
-#focus-clear{margin-top:10px}
+#selection-status{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}
+#focus-clear{margin:0;padding:5px 8px;font-size:12px}
 #focus-status{font-weight:600;margin:10px 0 4px;font-size:14px}
 #focus-details{margin:0;color:#b6b6c7;font:14px/1.5 system-ui,sans-serif}
 #focus-threshold{width:100%}
@@ -718,47 +722,17 @@ button:disabled{opacity:.5;cursor:default}
             </div>
 
             <div class="panel-scroll">
-                <div class="control-section" id="focus-controls">
-                    <h2>Focus on authors</h2>
-                    <details id="focus-topic-picker"><summary>Select topics<span id="focus-topic-count"></span></summary>
-                        <div id="focus-topics" role="group" aria-label="Topics to focus"></div>
-                    </details>
-                    <label class="focus-label" for="focus-community">Within community</label>
-                    <select class="sub-select" id="focus-community"><option value="all">All communities</option></select>
-                    <details id="focus-options"><summary>Selection options</summary>
-                    <label class="focus-label" for="focus-rule">Topic selection rule</label>
-                    <select class="sub-select" id="focus-rule">
-                        <option value="dominant">Leading topic is any selected</option>
-                        <option value="membership">Membership in any selected topic</option>
-                    </select>
-                    <div id="focus-threshold-wrap" hidden>
-                        <label class="focus-label" for="focus-threshold">Minimum membership: <output id="focus-threshold-value">30%</output></label>
-                        <input type="range" id="focus-threshold" min="0" max="100" step="5" value="30">
-                    </div>
-                    <label class="focus-label" for="focus-display">Other authors</label>
-                    <select class="sub-select" id="focus-display"><option value="dim">Dim for context</option><option value="hide">Hide</option></select>
-                    </details>
-                    <button type="button" class="btn" id="focus-clear" disabled>Clear focus</button>
-                    <p id="focus-status" role="status" aria-live="polite"></p>
-                    <p id="focus-details"></p>
-                </div>
-
                 <!-- Colour By -->
                 <div class="control-section">
-                    <h2>Colour By</h2>
-                    <div class="radio-group" id="color-mode-group">
-                        <label class="radio-item active" data-mode="community">
-                            <input type="radio" name="color-mode" value="community" checked>
-                            <span class="radio-label">Network Community</span>
-                        </label>
-                        <label class="radio-item" data-mode="dominant_topic">
-                            <input type="radio" name="color-mode" value="dominant_topic">
-                            <span class="radio-label">Dominant Topic</span>
-                        </label>
-                        <label class="radio-item" data-mode="sentiment">
-                            <input type="radio" name="color-mode" value="sentiment">
-                            <span class="radio-label">Sentiment Valence</span>
-                        </label>
+                    <h2><label for="colour-by">Colour By</label></h2>
+                    <div id="color-mode-group">
+                        <select class="sub-select" id="colour-by">
+                            <option value="community">Network Community</option>
+                            <option value="dominant_topic">Dominant Topic</option>
+                            <option value="sentiment">Sentiment Valence</option>
+                            <option value="topic_membership">Topic Membership</option>
+                            <option value="emotion">Emotion Score</option>
+                        </select>
                         <div class="sub-options" id="sentiment-options">
                             <select class="sub-select" id="sentiment-select" aria-label="Sentiment measure">
                                 <option value="net">Overall (positive - negative)</option>
@@ -767,17 +741,9 @@ button:disabled{opacity:.5;cursor:default}
                                 <option value="negative">Negative</option>
                             </select>
                         </div>
-                        <label class="radio-item" data-mode="topic_membership">
-                            <input type="radio" name="color-mode" value="topic_membership">
-                            <span class="radio-label">Topic Membership</span>
-                        </label>
                         <div class="sub-options" id="topic-options">
                             <select class="sub-select" id="topic-select" aria-label="Topic"></select>
                         </div>
-                        <label class="radio-item" data-mode="emotion">
-                            <input type="radio" name="color-mode" value="emotion">
-                            <span class="radio-label">Emotion Score</span>
-                        </label>
                         <div class="sub-options" id="emotion-options">
                             <select class="sub-select" id="emotion-select" aria-label="Emotion">
                                 <option value="anger">Anger</option>
@@ -800,6 +766,31 @@ button:disabled{opacity:.5;cursor:default}
                 <div class="control-section">
                     <h2>Legend</h2>
                     <div class="legend" id="legend"></div>
+                    <div class="legend-tabs" role="group" aria-label="Selectable legend">
+                        <button type="button" id="legend-topic" aria-pressed="false">Topics</button>
+                        <button type="button" id="legend-community" aria-pressed="true">Communities</button>
+                    </div>
+                    <p class="legend-hint">Tick to highlight; change Colour By to compare.</p>
+                    <div id="selection-status" hidden>
+                        <button type="button" class="btn" id="focus-clear">Clear selection</button>
+                        <p id="focus-status" role="status" aria-live="polite"></p>
+                    </div>
+                    <div id="selection-list" role="group" aria-label="Highlight groups"></div>
+                    <details id="focus-options"><summary>More options</summary>
+                    <p id="focus-details"></p>
+                    <label class="focus-label" for="focus-rule">Topic selection rule</label>
+                    <select class="sub-select" id="focus-rule">
+                        <option value="dominant">Leading topic is any selected</option>
+                        <option value="membership">Membership in any selected topic</option>
+                    </select>
+                    <div id="focus-threshold-wrap" hidden>
+                        <label class="focus-label" for="focus-threshold">Minimum membership: <output id="focus-threshold-value">30%</output></label>
+                        <input type="range" id="focus-threshold" min="0" max="100" step="5" value="30">
+                    </div>
+                    <label class="focus-label" for="focus-display">Other authors</label>
+                    <select class="sub-select" id="focus-display"><option value="dim">Dim for context</option><option value="hide">Hide</option></select>
+                    </details>
+
                 </div>
 
                 <!-- Search -->
@@ -822,7 +813,7 @@ button:disabled{opacity:.5;cursor:default}
                 <!-- Map interpretation -->
                 <details class="info-note"><summary>About these results</summary>
                     <p>Corrected analysis, October 2026: 164,291 eligible authors in the intersection of RetweetedOnce and the full network's largest weakly connected component. Posts were collected from October 2022 to February 2023.</p>
-                    <p>Focus selects authors without moving them or changing their data. Selected topics are combined with OR; the community filter is applied with AND. Membership thresholds apply to each topic separately. Dimmed authors provide context; map clicks inspect the selected group, while ID search still finds every author. Clearing focus restores all authors. In 3D, counts distinguish selected authors from those present in the giant-component layout.</p>
+                    <p>Focus selects authors without moving them or changing their data. Tick boxes in the legend to highlight topics or communities. Within each list, selections are combined with OR; selecting from both lists applies AND. Membership thresholds apply to each topic separately. Dimmed authors provide context; map clicks inspect the selected group, while ID search still finds every author. Clear selection restores all authors. In 3D, counts distinguish selected authors from those present in the giant-component layout.</p>
                     <p>The twelve-topic model uses all eligible posts, including retweets. Topics are exploratory: authors' leading topics can change between model runs. Sentiment and emotion colours show model scores for language, not verified beliefs or feelings.</p>
                     <p>Example posts are short illustrative excerpts. Original posts are preferred, followed by quotes, replies and retweets; shared content is identified. An example is not a representative sample of an author's views. Some authors have no sufficiently informative example.</p>
                     <p>Search terms can also capture unrelated names, titles or other meanings. Network proximity reflects connections, not agreement. <a href="METHODS.md">Full methods</a>.</p>
@@ -865,6 +856,6 @@ button:disabled{opacity:.5;cursor:default}
     </div>
 
     <script src="vendor/regl.min.js"></script>
-    <script src="app.js?v=20261011-shared-topics-1"></script>
+    <script src="app.js?v=20261011-legend-2"></script>
 </body>
 </html>
