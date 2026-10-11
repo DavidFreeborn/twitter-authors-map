@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path'),crypto=require('node:crypto');
 const root=process.argv[2],elements=new Map();
-const element=id=>{if(!elements.has(id))elements.set(id,{value:id==='sentiment-select'?'net':id==='emotion-select'?'joy':'2',style:{},classList:{contains:()=>false},textContent:'',innerHTML:''});return elements.get(id);};
+const element=id=>{if(!elements.has(id))elements.set(id,{value:id==='sentiment-select'?'net':id==='emotion-select'?'joy':'2',style:{},setAttribute(){},replaceChildren(){},classList:{contains:()=>false},textContent:'',innerHTML:''});return elements.get(id);};
 const context=vm.createContext({document:{addEventListener(){},getElementById:element,querySelectorAll:()=>[]},window:{},Float32Array,Set,Number,console});
 const run=s=>vm.runInContext(s,context);
 run(fs.readFileSync(path.join(root,'app.js'),'utf8'));
@@ -9,7 +9,7 @@ const before=hash(data);context.dataset=data;
 context.labelData=JSON.parse(fs.readFileSync(path.join(root,'data/community_labels.json'))).communities;
 const idx=fs.readFileSync(path.join(root,'data/layout3d_indices.bin'));
 context.indices=Array.from({length:idx.length/4},(_,i)=>idx.readUInt32LE(i*4));
-run('nodes=dataset;communityLabels=labelData;TOPIC_NAMES=Array.from({length:12},(_,i)=>"Topic "+i);visible3D=new Float32Array(nodes.length);indices.forEach(i=>visible3D[i]=1);colors=new Float32Array(nodes.length*3);updateLegend=()=>{};');
+run('nodes=dataset;communityLabels=labelData;TOPIC_NAMES=Array.from({length:12},(_,i)=>"Topic "+i);visible3D=new Float32Array(nodes.length);indices.forEach(i=>visible3D[i]=1);colors=new Float32Array(nodes.length*3);updateLegend=()=>{};renderSelectionLegend=()=>{};');
 const check=(expression,predicate)=>{
  run(expression+';applyFocus()');
  const selected=data.filter(predicate),actual=run('focusTotals.count');
@@ -17,7 +17,7 @@ const check=(expression,predicate)=>{
  for(let i=0;i<data.length;i++)assert.equal(run('focusMask')[i],predicate(data[i])?1:0);
  return actual;
 };
-assert.equal(check("focusTopics=new Set([2,9]);focusRule='dominant';focusCommunity='all'",n=>[2,9].includes(n.dt)),50753);
+assert.equal(check("focusTopics=new Set([2,9]);focusRule='dominant';focusCommunities=new Set()",n=>[2,9].includes(n.dt)),50753);
 assert.equal(run('focusTotals.in3d'),49280);
 const focusBefore=Array.from(run('focusMask'));
 for(const mode of ['community','dominant_topic','sentiment','topic_membership','emotion']){
@@ -25,15 +25,17 @@ for(const mode of ['community','dominant_topic','sentiment','topic_membership','
  assert.deepEqual(Array.from(run('focusMask')),focusBefore,'lens preserves exact selection');
  assert.ok(Array.from(run('colors')).every(Number.isFinite),'finite colours');
 }
-check("focusCommunity='0'",n=>[2,9].includes(n.dt)&&n.c===0);
-check("focusCommunity='all';focusRule='membership';focusThreshold=.3",n=>n.t2>=.3||n.t9>=.3);
+check("focusCommunities=new Set(['0'])",n=>[2,9].includes(n.dt)&&n.c===0);
+check("focusCommunities=new Set();focusRule='membership';focusThreshold=.3",n=>n.t2>=.3||n.t9>=.3);
 check("focusThreshold=1",n=>n.t2>=1||n.t9>=1);
 assert.equal(run('focusTotals.count'),0,'empty selection');
-check("focusTopics=new Set();focusCommunity='tail'",n=>!context.labelData[String(n.c)]);
+check("focusTopics=new Set();focusCommunities=new Set(['tail'])",n=>!context.labelData[String(n.c)]);
+check("focusTopics=new Set();focusCommunities=new Set(['0','4'])",n=>[0,4].includes(n.c));
+check("focusTopics=new Set([2,9]);focusRule='dominant'",n=>[0,4].includes(n.c)&&[2,9].includes(n.dt));
 run('clearFocus()');assert.equal(run('focusTotals.count'),data.length);
 assert.equal(run('focusIsActive()'),false);
 assert.equal(hash(data),before,'No author or analytical value changed');
-run("focusTopics=new Set([2]);focusRule='dominant';focusCommunity='all';applyFocus();");
+run("focusTopics=new Set([2]);focusRule='dominant';focusCommunities=new Set();applyFocus();");
 const calls=[];context.capture=p=>calls.push(p.focusPass);context.clearDepth=()=>calls.push('depth');
 run('regl={clear:clearDepth};focusDisplay="dim";drawFocusedCloud(capture,{},true)');
 assert.deepEqual(calls,[0,'depth',1],'context first, then depth clear and selected authors');

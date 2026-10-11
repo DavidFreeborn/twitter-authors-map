@@ -41,8 +41,10 @@ The atlas can highlight authors while preserving their existing positions and al
 
 Other authors can be dimmed for context or hidden. Both 2D and 3D use the same author mask. The display reports the full selection and, in 3D, its coverage in the giant-component coordinates. Mean net sentiment is the unweighted mean of positive minus negative author scores over the full selection, including authors available only in 2D; it is not post-level sentiment about a topic.
 
-Focus is independent of the colour lens: communities, leading topics, topic membership, sentiment and emotion remain available. Map picking inspects focused authors; ID search still finds every author and reports when a result is outside the focus. Clear focus removes both the topic and community restrictions. Reset and Fit preserve focus and continue to control the camera only.
+Focus is independent of the colour lens: communities, leading topics, topic membership, sentiment and emotion remain available. Map picking inspects focused authors; ID search still finds every author and reports when a result is outside the focus. Clear selection removes both the topic and community restrictions. Reset and Fit preserve focus and continue to control the camera only.
 
 The shared topic palette is identical in this atlas, its label guide and the current light/dark blog figures. Colours never change memberships or labels. Twelve categories cannot be reliably distinguished by colour alone for every viewer, so labelled checkboxes, isolation and exact counts provide alternatives. The map retains its existing sentiment and emotion scales.
 
 The focusable map supports arrow-key pan (2D) or rotation (3D), plus/minus zoom, and Home to fit. Native controls support keyboard selection. Original mouse, touch, search, examples and camera controls remain available.
+
+Legend checkboxes replace the separate focus panel. Multiple communities combine with OR; topic and community selections intersect. Selection persists across colour lenses. More options retains per-topic membership thresholds and dim/hide behaviour. The two largest topics use orange and blue; topic colours match the light/dark figures.
