@@ -43,6 +43,6 @@ Other authors can be dimmed for context or hidden. Both 2D and 3D use the same a
 
 Focus is independent of the colour lens: communities, leading topics, topic membership, sentiment and emotion remain available. Map picking inspects focused authors; ID search still finds every author and reports when a result is outside the focus. Clear focus removes both the topic and community restrictions. Reset and Fit preserve focus and continue to control the camera only.
 
-Distinct atlas colours increase separation on the dark point cloud. Match blog figures restores the exact figure palette; colours never change memberships or labels. Twelve categories cannot be reliably distinguished by colour alone for every viewer, so labelled checkboxes, isolation and exact counts provide alternatives. The map retains its existing sentiment and emotion scales.
+The shared topic palette is identical in this atlas, its label guide and the current light/dark blog figures. Colours never change memberships or labels. Twelve categories cannot be reliably distinguished by colour alone for every viewer, so labelled checkboxes, isolation and exact counts provide alternatives. The map retains its existing sentiment and emotion scales.
 
 The focusable map supports arrow-key pan (2D) or rotation (3D), plus/minus zoom, and Home to fit. Native controls support keyboard selection. Original mouse, touch, search, examples and camera controls remain available.
