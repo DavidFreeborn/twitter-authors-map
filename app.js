@@ -6,7 +6,7 @@
 // Data
 let nodes = [];
 let summary = {};
-const ASSET_VERSION = '20261011-simple-3';
+const ASSET_VERSION = '20261013-lenses-4';
 const versionedAsset = path => `${path}?v=${ASSET_VERSION}`;
 
 // Descriptive labels for the supplied network communities
@@ -107,9 +107,9 @@ let TOPIC_NAMES = [];
 
 
 // Shared topic colours: identical to light/dark plots and their legends.
-const TOPIC_PALETTE = ["#e8a0bd", "#a9d4ed", "#35b9ff", "#909f3d", "#b28a60", "#e65bdb", "#b9bec5", "#4b9f98", "#ff6d3a", "#f1d54a", "#9975e8", "#54c97e"].map(hex => [1,3,5].map(i => parseInt(hex.slice(i,i+2),16)/255));
+let TOPIC_PALETTE = ["#e8a0bd", "#a9d4ed", "#35b9ff", "#909f3d", "#b28a60", "#e65bdb", "#b9bec5", "#4b9f98", "#ff6d3a", "#f1d54a", "#9975e8", "#54c97e"].map(hex => [1,3,5].map(i => parseInt(hex.slice(i,i+2),16)/255));
 // A selection belongs to one category lens and survives changes of colour view.
-let focusKeys = new Set(), focusKind = null;
+let focusKeys = new Set(), focusKind = null, focusModel = '12';
 let focusMask = null, focusBuffer = null, focusTotals = null;
 let topicSizes = [], topicOrder = [], communityOrder = [];
 function focusIsActive() { return focusKeys.size > 0; }
@@ -117,12 +117,12 @@ function communityKey(node) {
     const c=node[F.community];
     return c==null||c<0?'missing':communityIsLabelled(c)?String(c):'tail';
 }
-function topicKey(node) {
-    const t=node[F.dominantTopic];
-    return Number.isInteger(t)&&t>=0&&t<TOPIC_NAMES.length?t:-1;
+function topicKey(node, model = activeTopicModel) {
+    const t=dominantTopic(node, model);
+    return Number.isInteger(t)&&t>=0&&t<Number(model)?t:-1;
 }
 function matchesFocus(node) {
-    return !focusIsActive() || focusKeys.has(focusKind==='topic'?topicKey(node):communityKey(node));
+    return !focusIsActive() || focusKeys.has(focusKind==='topic'?topicKey(node,focusModel):communityKey(node));
 }
 function buildLegendOrder() {
     topicSizes=Array(TOPIC_NAMES.length).fill(0);
@@ -144,7 +144,7 @@ function initialiseFocusControls() {
 }
 function toggleGroup(kind,key,checked) {
     // Like the other atlases, ticking in a different lens starts a new selection.
-    if(focusKind!==kind){focusKeys.clear();focusKind=kind;}
+    if(focusKind!==kind || (kind==='topic' && focusModel!==activeTopicModel)){focusKeys.clear();focusKind=kind;focusModel=activeTopicModel;}
     checked?focusKeys.add(key):focusKeys.delete(key);
     if(!focusKeys.size)focusKind=null;
     applyFocus();
@@ -161,7 +161,7 @@ function renderSelectionLegend(mode) {
     items.sort((a,b)=>b.count-a.count);
     for(const item of items){
         const row=document.createElement('label');row.className='legend-choice';
-        const input=document.createElement('input');input.type='checkbox';input.checked=focusKind===kind&&focusKeys.has(item.key);
+        const input=document.createElement('input');input.type='checkbox';input.checked=focusKind===kind&&(kind!=='topic'||focusModel===activeTopicModel)&&focusKeys.has(item.key);
         input.addEventListener('change',()=>toggleGroup(kind,item.key,input.checked));
         const swatch=document.createElement('span');swatch.className='legend-swatch'+(item.color?'':' legend-swatch-multi');
         if(item.color)swatch.style.background=rgb(item.color);
@@ -185,14 +185,118 @@ function updateFocusStatus() {
     if(!focusTotals)return;
     const {count,in3d}=focusTotals;
     document.getElementById('focus-map-status').hidden=!focusIsActive();
-    document.getElementById('focus-status').textContent=count.toLocaleString()+' selected'+(viewMode==='3d'?' · '+in3d.toLocaleString()+' in 3D':'');
-    document.getElementById('focus-status').title=focusKind==='topic'?'Selected in Topics':'Selected in Communities';
+    document.getElementById('focus-status').textContent=count.toLocaleString()+' selected'+(focusKind==='topic'?` · ${focusModel} topics`:'')+(viewMode==='3d'?' · '+in3d.toLocaleString()+' in 3D':'');
+    document.getElementById('focus-status').title=focusKind==='topic'?`Selected in ${focusModel}-topic model`:'Selected in Communities';
 }
 function drawFocusedCloud(draw,props,is3d) {
     if(!focusIsActive()){draw({...props,focusPass:-1});return;}
     draw({...props,focusPass:0});
     if(is3d)regl.clear({depth:1});
     draw({...props,focusPass:1});
+}
+
+
+// Optional lenses are joined by string author ID and never overwrite the base data.
+let activeTopicModel = '12', alternativeTopics = null, authorMetrics = null;
+let baseTopicNames = null, baseTopicPalette = null;
+let topicLoadPromise = null, metricsLoadPromise = null;
+const MEASURES = {
+    followers: ['Followers', 'Recorded during data collection; not current counts.'],
+    lifetime_posts: ['Lifetime posts', 'Account-wide total when recorded; not just posts in this study.'],
+    analysed_posts: ['Posts analysed', 'Usable study posts after cleaning and deduplication, including retweets.'],
+    retweets_sent: ['Retweets sent', 'Times this author retweeted others in the study network. Includes authors not shown; repeats count.'],
+    retweets_received: ['Retweets received', 'Times others retweeted this author in the study network. Includes authors not shown; repeats count.']
+};
+let metricStats = {};
+const MEASURE_LOW = [0.13,0.22,0.35], MEASURE_HIGH = [1,0.82,0.25];
+function topicValue(node, k, model = activeTopicModel) {
+    return model==='12' ? node[F.topic(k)] : alternativeTopics?.get(node[F.id])?.[k];
+}
+function dominantTopic(node, model = activeTopicModel) {
+    if(model==='12')return node[F.dominantTopic];
+    const row=alternativeTopics?.get(node[F.id]);
+    return row ? row.indexOf(Math.max(...row)) : -1;
+}
+function dominantWeight(node) {
+    return activeTopicModel==='12' ? node[F.dominantProb] : Math.max(...alternativeTopics.get(node[F.id]));
+}
+function alignLens(payload, width, probabilities=false) {
+    if(payload.ids?.length!==nodes.length || payload.values?.length!==nodes.length)throw new Error('Lens population mismatch');
+    const map=new Map();
+    payload.ids.forEach((id,i)=>{
+        const row=payload.values[i];
+        if(typeof id!=='string'||!nodeIndexById.has(id)||map.has(id)||!Array.isArray(row)||row.length!==width ||
+           row.some(v=>v!==null&&(!Number.isFinite(v)||v<0)) ||
+           (probabilities && (row.some(v=>v===null||v>1)||Math.abs(row.reduce((a,b)=>a+b,0)-1)>1e-5)))throw new Error('Invalid lens data');
+        map.set(id,row);
+    });
+    return map;
+}
+async function fetchLens(path) {
+    const response=await fetch(versionedAsset(path));
+    if(!response.ok)throw new Error(`Lens data: HTTP ${response.status}`);
+    return response.json();
+}
+async function changeTopicModel() {
+    const select=document.getElementById('topic-model-select');
+    const requested=select.value;
+    const status=document.getElementById('topic-model-status');
+    select.disabled=true;status.hidden=false;status.textContent='Loading…';
+    try {
+        if(!baseTopicNames){baseTopicNames=TOPIC_NAMES.slice();baseTopicPalette=TOPIC_PALETTE.slice();}
+        if(requested==='8'&&!alternativeTopics) {
+            if(!topicLoadPromise)topicLoadPromise=fetchLens('data/topics-8.json').catch(error=>{topicLoadPromise=null;throw error;});
+            const payload=await topicLoadPromise;
+            const aligned=alignLens(payload,8,true);
+            if(payload.labels?.length!==8||payload.colours?.length!==8||payload.colours.some(c=>!/^#[0-9a-f]{6}$/i.test(c)))throw new Error('Invalid topic legend');
+            alternativeTopics=aligned;
+        }
+        const payload=requested==='8'?await topicLoadPromise:null;
+        activeTopicModel=requested;
+        TOPIC_NAMES=payload?payload.labels.slice():baseTopicNames.slice();
+        TOPIC_PALETTE=payload?payload.colours.map(hex=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255)):baseTopicPalette.slice();
+        initialiseFocusControls();updateColors();
+        if(selectedNode)showAuthorPanel(selectedNode);
+        status.textContent='';status.hidden=true;
+    } catch(error) {
+        topicLoadPromise=null;
+        select.value=activeTopicModel;status.hidden=false;status.textContent='Could not load model; previous model retained. Select again to retry.';console.error(error);
+    } finally {select.disabled=false;}
+}
+function measureValue(node,key) {
+    return authorMetrics?.get(node[F.id])?.[{followers:0,lifetime_posts:1,analysed_posts:2,retweets_sent:3,retweets_received:4}[key]];
+}
+function measureStats(key) {
+    if(!metricStats[key]) {
+        let max=0,count=0;
+        for(const node of nodes){const v=measureValue(node,key);if(Number.isFinite(v)&&v>=0){max=Math.max(max,v);count++;}}
+        metricStats[key]={max,count};
+    }
+    return metricStats[key];
+}
+function measureColour(node,key) {
+    const value=measureValue(node,key);
+    if(!Number.isFinite(value)||value<0)return GREY;
+    const {max}=measureStats(key);
+    const t=max?Math.log1p(value)/Math.log1p(max):0;
+    return MEASURE_LOW.map((v,i)=>v+t*(MEASURE_HIGH[i]-v));
+}
+async function loadAuthorMetrics() {
+    if(authorMetrics)return;
+    const status=document.getElementById('measure-status');
+    status.textContent='Loading author counts…';
+    try {
+        if(!metricsLoadPromise)metricsLoadPromise=fetchLens('data/author-metrics.json').catch(error=>{metricsLoadPromise=null;throw error;});
+        const payload=await metricsLoadPromise;
+        if(JSON.stringify(payload.fields)!==JSON.stringify(['followers','lifetime_posts','analysed_posts','retweets_sent','retweets_received']))throw new Error('Invalid metric fields');
+        authorMetrics=alignLens(payload,5);metricStats={};status.textContent='';updateColors();
+        if(selectedNode)showAuthorPanel(selectedNode);
+    } catch(error) {metricsLoadPromise=null;status.textContent='Counts unavailable. Choose another measure, then retry.';console.error(error);}
+}
+function updateLensControls() {
+    const needsModel=['dominant_topic','topic_membership'].includes(colorMode);
+    document.getElementById('topic-model-options').classList.toggle('visible',needsModel);
+    document.getElementById('measure-options').classList.toggle('visible',colorMode==='author_measure');
 }
 
 // Sentiment colours are expressed as
@@ -260,7 +364,7 @@ function communityConfidence(c) {
 function topTopicScores(node, howMany) {
     const scores = [];
     for (let i = 0; i < TOPIC_NAMES.length; i++) {
-        const value = node[F.topic(i)];
+        const value = topicValue(node,i);
         if (value !== null && value !== undefined) {
             scores.push({ index: i, name: TOPIC_NAMES[i], value });
         }
@@ -517,6 +621,7 @@ async function init() {
 
         // Event listeners
         setupEventListeners();
+        document.querySelectorAll('#color-mode-group input, #color-mode-group select').forEach(control=>{control.disabled=false;});
 
         // Example-post lookup: fetched lazily after first paint so it never
         // delays the map. It remains separate from all GPU buffers.
@@ -891,11 +996,14 @@ function updateColors() {
             }
         }
         else if (mode === 'dominant_topic') {
-            const topicIdx = node[F.dominantTopic];
+            const topicIdx = dominantTopic(node);
             if (topicIdx !== null && topicIdx !== undefined && topicIdx >= 0 && topicIdx < TOPIC_NAMES.length) {
                 color = TOPIC_PALETTE[topicIdx % TOPIC_PALETTE.length];
                 validCount++;
             }
+        }
+        else if (mode === 'author_measure') {
+            color=measureColour(node,document.getElementById('measure-select').value);
         }
         else if (mode === 'sentiment') {
             const sentType = document.getElementById('sentiment-select').value;
@@ -928,7 +1036,7 @@ function updateColors() {
         }
         else if (mode === 'topic_membership') {
             const topicIdx = document.getElementById('topic-select').value;
-            const val = node[F.topic(topicIdx)];
+            const val = topicValue(node,topicIdx);
             if (val !== null && val !== undefined) {
                 // Low membership is pale; high membership uses this topic's shared colour.
                 const t = Math.min(1, Math.max(0, val * 2.5));
@@ -971,6 +1079,21 @@ function updateLegend(mode) {
 
     // Helper to create RGB string
     const rgb = (c) => `rgb(${Math.round(c[0]*255)},${Math.round(c[1]*255)},${Math.round(c[2]*255)})`;
+
+
+    if(mode==='author_measure') {
+        const key=document.getElementById('measure-select').value;
+        const {max,count}=measureStats(key);
+        const wrap=document.createElement('div');wrap.className='legend-gradient-wrap measure-gradient';
+        const format=v=>Math.round(v).toLocaleString();
+        const middle=Math.expm1(Math.log1p(max)/2);
+        wrap.innerHTML=`<div class="legend-gradient" style="background:linear-gradient(to right,${rgb(MEASURE_LOW)},${rgb(MEASURE_HIGH)})"></div><div class="legend-gradient-labels"><span>0</span><span>${format(middle)}</span><span>${format(max)}</span></div>`;
+        const note=document.createElement('p');note.className='lens-note';
+        note.textContent=MEASURES[key][1]+` Log scale · ${count.toLocaleString()} of ${nodes.length.toLocaleString()} authors.`;
+        const missing=document.createElement('div');missing.className='legend-item';missing.innerHTML=`<span class="legend-swatch" style="background:${rgb(GREY)}"></span><span>No data: ${(nodes.length-count).toLocaleString()} author${nodes.length-count===1?'':'s'}</span>`;
+        container.append(wrap,note);
+        if(count<nodes.length)container.appendChild(missing);
+    }
 
     if(mode==='community'||mode==='dominant_topic')renderSelectionLegend(mode);
     if (mode === 'sentiment') {
@@ -1392,9 +1515,13 @@ function setupEventListeners() {
             document.getElementById('sentiment-options').classList.toggle('visible',colorMode==='sentiment');
             document.getElementById('topic-options').classList.toggle('visible',colorMode==='topic_membership');
             document.getElementById('emotion-options').classList.toggle('visible',colorMode==='emotion');
+            updateLensControls();
+            if(colorMode==='author_measure')loadAuthorMetrics();
             updateColors();
         });
     });
+    document.getElementById('topic-model-select').addEventListener('change',changeTopicModel);
+    document.getElementById('measure-select').addEventListener('change',()=>{updateLensControls();loadAuthorMetrics();updateColors();});
     document.getElementById('focus-clear').addEventListener('click',clearFocus);
 
     // Sub-selects
@@ -1512,14 +1639,14 @@ function showTooltip(e) {
         hoverNode = nearest;
         let html = `<div class="tt-author">${nearest[F.id]}</div>`;
         html += `<div class="tt-row"><span class="tt-label">Community</span><span class="tt-value">${escapeHtml(communityLabel(nearest[F.community]))}</span></div>`;
-        html += `<div class="tt-row"><span class="tt-label">Full degree</span><span class="tt-value">${nearest[F.fullDegree]?.toFixed(0) || '-'}</span></div>`;
-        html += `<div class="tt-row"><span class="tt-label">Matched degree</span><span class="tt-value">${nearest[F.matchedDegree]?.toFixed(0) || '-'}</span></div>`;
+        html += `<div class="tt-row"><span class="tt-label">Retweets, study network</span><span class="tt-value">${nearest[F.fullDegree]?.toFixed(0) || '-'}</span></div>`;
+        html += `<div class="tt-row"><span class="tt-label">Retweets, displayed authors</span><span class="tt-value">${nearest[F.matchedDegree]?.toFixed(0) || '-'}</span></div>`;
 
-        const domTopic = nearest[F.dominantTopic];
+        const domTopic = dominantTopic(nearest);
         if (domTopic !== null && domTopic !== undefined && domTopic >= 0) {
             const topicName = TOPIC_NAMES[domTopic] || `Topic ${domTopic}`;
             html += `<div class="tt-row"><span class="tt-label">Topic</span><span class="tt-value">${escapeHtml(topicName)}</span></div>`;
-            html += `<div class="tt-row"><span class="tt-label">Topic prob</span><span class="tt-value">${(nearest[F.dominantProb] * 100).toFixed(0)}%</span></div>`;
+            html += `<div class="tt-row"><span class="tt-label">Topic prob</span><span class="tt-value">${(dominantWeight(nearest) * 100).toFixed(0)}%</span></div>`;
         }
 
         const pos = nearest[F.positive];
@@ -1606,15 +1733,16 @@ function examplePostHtml(node) {
 
 function showAuthorPanel(node) {
     selectedNode = node;
+    if (!authorMetrics) loadAuthorMetrics();
     updateSelected3DPosition();
     const panel = document.getElementById('author-panel');
     const body = document.getElementById('author-panel-body');
     if (!panel || !body) return;
     const community = node[F.community];
     const communityN = communitySize(community);
-    const dominantTopic = node[F.dominantTopic];
-    const dominantTopicName = dominantTopic !== null && dominantTopic !== undefined && dominantTopic >= 0
-        ? (TOPIC_NAMES[dominantTopic] || `Topic ${dominantTopic}`)
+    const topicIndex = dominantTopic(node);
+    const dominantTopicName = topicIndex !== null && topicIndex !== undefined && topicIndex >= 0
+        ? (TOPIC_NAMES[topicIndex] || `Topic ${topicIndex}`)
         : '—';
 
     const row = (label, value) => `<div class='ap-row'><span class='ap-label'>${label}</span><span class='ap-value'>${value}</span></div>`;
@@ -1637,9 +1765,13 @@ function showAuthorPanel(node) {
     html += `<div class='ap-section ap-summary'>`;
     html += row('Community', escapeHtml(communityLabel(community)));
     if (communityN !== null) html += row('Community size', communityN.toLocaleString());
+    html += row('Topic model', activeTopicModel+' topics');
     html += row('Dominant topic', escapeHtml(dominantTopicName));
-    html += row('Topic weight', formatScore(node[F.dominantProb]));
-    html += row('Full-network degree', (node[F.fullDegree] ?? 0).toFixed(0));
+    html += row('Topic weight', formatScore(dominantWeight(node)));
+    for(const key of ['followers','lifetime_posts','analysed_posts','retweets_sent','retweets_received']) {
+        const value=measureValue(node,key);
+        html+=row(MEASURES[key][0]+(['followers','lifetime_posts'].includes(key)?' (when recorded)':''),Number.isFinite(value)?value.toLocaleString():(authorMetrics?'No data':'Not loaded'));
+    }
     html += `</div>`;
 
     html += `<div class='ap-section'>`;
