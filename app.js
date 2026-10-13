@@ -20,6 +20,7 @@ let communitySizes = {};         // exact matched-author count for every communi
 // cloud is on screen and kept in ordinary JS memory, never in GPU buffers.
 let examplePosts = null;
 let examplePostsState = 'idle';  // idle | loading | ready | failed
+const hideExamplePosts = document.currentScript?.dataset.hidePosts === 'true';
 
 // Per-emotion mean/SD across all matched authors, used only to pick each
 // author's two most distinctive emotions for display. Computed at load time
@@ -1689,6 +1690,7 @@ function authorDisplay(node) {
 }
 
 function loadExamplePosts() {
+    if (hideExamplePosts) return;
     if (examplePostsState !== 'idle') return;
     examplePostsState = 'loading';
     fetch(versionedAsset('data/representative_posts.json'))
@@ -1788,7 +1790,7 @@ function showAuthorPanel(node) {
     html += emotions.map(([label, value]) => score(label, value)).join('');
     html += `</div></div>`;
 
-    html += `<div class='ap-section'>${examplePostHtml(node)}</div>`;
+    if (!hideExamplePosts) html += `<div class='ap-section'>${examplePostHtml(node)}</div>`;
 
     body.innerHTML = html;
     panel.classList.remove('hidden');
