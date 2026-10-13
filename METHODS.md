@@ -4,7 +4,7 @@ Updated 11 October 2026. Collection period: 30 October 2022 to 27 February 2023.
 
 ## Population and network
 
-The RetweetedOnce network contains 202,710 users and 882,530 edges. All its users belong to the larger network's largest weakly connected component. The map displays the 164,291 authors eligible for the corrected analysis (at least three usable posts), with 782,974 connections between displayed authors. The full-network degree can include connections outside this displayed subset.
+The RetweetedOnce network contains 202,710 users and 882,530 edges. All its users belong to the larger network's largest weakly connected component. The map displays the 164,291 authors eligible for the corrected analysis (at least three usable posts), with 782,974 connections between displayed authors. The stored field historically labelled full-network degree is weighted in-strength plus out-strength: retweets made plus received within the 202,710-author RetweetedOnce network. It counts repeated retweets and can include authors outside the displayed subset.
 
 The default 2D coordinates use igraph DrL on the matched-author network. Disconnected components have arbitrary relative placement. The optional 3D view displays the largest connected component: 161,035 authors. The other 3,256 authors remain available in 2D.
 
@@ -44,3 +44,27 @@ Ticking legend entries selects their union. Selected authors remain highlighted 
 The topic palette matches the current light and dark figures. The five largest topics use orange, blue, magenta, yellow and green. Community, sentiment and emotion colours are unchanged. Labels, counts and selection provide alternatives to colour alone. Data, topic scores and network geometry are unchanged.
 
 The map supports arrow-key pan or rotation, plus/minus zoom and Home to fit. Legend checkboxes and colour views support native keyboard controls.
+
+
+## Additional lenses — 13 October 2026
+
+The optional eight-topic lens reuses the approved `analysis-topic-corrected` model, the original grid runner-up: bigram TF-IDF, K=8, alpha=0.3, eta=0.01, seed=42, 50 iterations. It shares all 164,291 authors and the fitted document corpus with the twelve-topic default. The original automatic winner triggered the existing concentration review and is not offered. No model was fitted or promoted for this update. The twelve-topic default, its palette and the current figures remain unchanged. The best sample-grid candidates at K=16 and K=20 still require full-population fitting and review.
+
+Alternative weights are joined by exact string author IDs and validated for uniqueness, complete coverage and probability sums. A topic selection records its source model and preserves the exact authors across model changes, all colour lenses and 2D/3D. Selecting a topic in another model replaces that selection. Category legends and membership pickers remain largest first. The colour inheritance rule below records directional author overlap, not identical topic meaning.
+
+Followers and lifetime posts come from stored `AItrust_author_dict.json` public metrics. They are historical readings, not live measurements or necessarily observations on one common date. Repeated IDs retain the last stored row; source order is not assumed to be chronological. Missing counters remain missing, never zero. Posts analysed comes from the approved author topic table’s `n_tweets`: usable posts in each fitted author document, including retweets, under the existing cleaning and deduplication rules. It is distinct from lifetime account activity and classifier coverage.
+
+Retweets sent and Retweets received are separate weighted counts in the full 202,710-author RetweetedOnce study network. The stored information-flow graph points from the original author to the retweeter: sent counts use incoming weights, received counts use outgoing weights. Repeated retweets count. These include authors outside the displayed subset, but do not cover all of Twitter or an account’s lifetime. Their sum equals the existing `fd` value for every displayed author. The graph contains 1,269,747 retweet events; total sent and received across all its authors each equal that number. Count colours use log(1+count), with exact minimum/midpoint/maximum tick values and coverage shown. Missing data is grey. Exact counters appear in the author detail panel. Optional payloads load on demand; failed loads leave the existing atlas usable.
+
+
+## Colour refinement — 13 October 2026
+
+For each eight-topic dominant-author group, divide its intersection with each twelve-topic dominant-author group by its own author count. Inherit the best-overlapping twelve-topic colour only when the fraction is strictly greater than 0.60, without rounding. Multiple groups can inherit one colour. Nonmatching groups use distinct saturated hues and ivory. `scripts/update_topic_colours.py` applies the rule reproducibly; the payload records the full cross-counts. Only palette metadata changes, never author memberships. Qualifying groups are research/industry (74.7665%), art/NFT posting (72.1269%), entertainment/memes (83.0285%), tools/writing/code (82.7035%) and artists’ objections (90.6096%). The previous 75% threshold is superseded.
+
+For numeric lenses the grey missing-data key is shown only when records are missing, with the exact count. Zero is a valid observed value, not missing data.
+
+
+The leading-topic-weight colour lens was removed at David’s request. Author detail topic scores remain available. Followers and lifetime posts have concise historical-count caveats beneath the legend; Retweets sent and Retweets received each have a short study-network scope note. Missing-data behaviour is unchanged.
+
+
+The topic selector uses plain labels, “12 topics” and “8 topics”, without persistent status text. Loading and error messages appear only when needed. The two direction-specific retweet counts replace the combined colour lens. Both cover all displayed authors.
