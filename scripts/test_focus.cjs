@@ -1,8 +1,8 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path'),crypto=require('node:crypto');
-const root=process.argv[2],elements=new Map();
-function fake(){return {children:[],style:{},classList:{contains:()=>false},textContent:'',value:'',set innerHTML(v){this.children=[];},get innerHTML(){return '';},setAttribute(){},addEventListener(){},append(...els){this.children.push(...els);},appendChild(el){this.children.push(el);},replaceChildren(...els){this.children=els;}};}
+const root=process.argv[2]||path.resolve(__dirname,'..'),elements=new Map();
+function fake(){return {children:[],style:{},classList:{contains:()=>false,add(){},remove(){},toggle(){}},textContent:'',value:'',set innerHTML(v){this.children=[];},get innerHTML(){return '';},setAttribute(){},addEventListener(){},append(...els){this.children.push(...els);},appendChild(el){this.children.push(el);},replaceChildren(...els){this.children=els;}};}
 const element=id=>{if(!elements.has(id)){const el=fake();el.value=id==='sentiment-select'?'net':id==='emotion-select'?'joy':'2';elements.set(id,el);}return elements.get(id);};
-const context=vm.createContext({document:{addEventListener(){},getElementById:element,createElement:fake,querySelectorAll:()=>[]},window:{},Float32Array,Set,Map,Number,console});
+const context=vm.createContext({document:{addEventListener(){},getElementById:element,createElement:fake,querySelectorAll:()=>[]},window:{addEventListener(){}},Float32Array,Set,Map,Number,console});
 const run=s=>vm.runInContext(s,context);
 run(fs.readFileSync(path.join(root,'app.js'),'utf8'));
 const data=JSON.parse(fs.readFileSync(path.join(root,'data/nodes.json'))),hash=x=>crypto.createHash('sha256').update(JSON.stringify(x)).digest('hex');

@@ -2,10 +2,10 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const path = require('node:path');
-const root = process.argv[2];
+const root = process.argv[2] || path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
 const canvas = {clientWidth: 390, clientHeight: 600};
-const context = vm.createContext({document: {addEventListener() {}, getElementById() {return canvas;}}, window: {}});
+const context = vm.createContext({document: {addEventListener() {}, getElementById() {return canvas;}}, window: {addEventListener(){}}});
 vm.runInContext(source, context);
 const run = s => vm.runInContext(s, context);
 for (const [width, height] of [[390,600],[1280,850],[768,600]]) {

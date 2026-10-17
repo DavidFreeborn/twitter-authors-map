@@ -1,11 +1,11 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path'),crypto=require('node:crypto');
-const root=process.argv[2],elements=new Map();
+const root=process.argv[2]||path.resolve(__dirname,'..'),elements=new Map();
 function fake(){return {children:[],style:{},classList:{toggle(){},remove(){},contains:()=>false},textContent:'',value:'',set innerHTML(v){this.children=[];this.html=v;},get innerHTML(){return this.html||'';},setAttribute(){},addEventListener(){},append(...els){this.children.push(...els);},appendChild(el){this.children.push(el);},replaceChildren(...els){this.children=els;this.value=String(els[0]?.value??'');}};}
 function element(id){if(!elements.has(id))elements.set(id,fake());return elements.get(id);}
 const data=JSON.parse(fs.readFileSync(path.join(root,'data/nodes.json')));
 const hash=x=>crypto.createHash('sha256').update(JSON.stringify(x)).digest('hex'),before=hash(data);
 let fail=false;
-const context=vm.createContext({document:{addEventListener(){},getElementById:element,createElement:fake,querySelectorAll:()=>[]},window:{},Float32Array,Set,Map,Number,console:{log(){},error(){}},fetch:async url=>{if(fail)throw new Error('simulated offline');return {ok:true,json:async()=>JSON.parse(fs.readFileSync(path.join(root,url.split('?')[0])))}}});
+const context=vm.createContext({document:{addEventListener(){},getElementById:element,createElement:fake,querySelectorAll:()=>[]},window:{addEventListener(){}},Float32Array,Set,Map,Number,console:{log(){},error(){}},fetch:async url=>{if(fail)throw new Error('simulated offline');return {ok:true,json:async()=>JSON.parse(fs.readFileSync(path.join(root,url.split('?')[0])))}}});
 const run=s=>vm.runInContext(s,context);run(fs.readFileSync(path.join(root,'app.js'),'utf8'));
 context.dataset=data;context.summaryData=JSON.parse(fs.readFileSync(path.join(root,'data/build_summary.json')));context.labelData=JSON.parse(fs.readFileSync(path.join(root,'data/community_labels.json'))).communities;
 run('nodes=dataset;summary=summaryData;TOPIC_NAMES=summary.topic_labels;communityLabels=labelData;nodeIndexById=new Map(nodes.map((n,i)=>[n.id,i]));colors=new Float32Array(nodes.length*3);initialiseFocusControls();');

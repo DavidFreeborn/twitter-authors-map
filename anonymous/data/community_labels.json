@@ -1,0 +1,174 @@
+{
+  "order": [
+    1,
+    0,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    16,
+    15,
+    18,
+    21,
+    20,
+    17
+  ],
+  "communities": {
+    "1": {
+      "label": "AI tools, news & discussion",
+      "display_label": "AI tools, news & discussion",
+      "short_description": "ChatGPT, tools, models and thread-summary keywords; samples span coding, subscriptions, applications and debate. A broad discussion group, not a uniform stance.",
+      "n_authors": 39397,
+      "confidence": "medium"
+    },
+    "0": {
+      "label": "AI-art debate & criticism",
+      "display_label": "AI-art debate & criticism",
+      "short_description": "Art, artists and generated-image keywords; sampled posts include artistic objections, deepfake concerns and wider AI debate. Not every author opposes AI, and some posts are unrelated word or game references.",
+      "n_authors": 37737,
+      "confidence": "medium"
+    },
+    "2": {
+      "label": "AI debate, politics & trading",
+      "display_label": "AI debate, politics & trading",
+      "short_description": "Keyword totals emphasise price/profit, but the distinct-author sample includes political-bias criticism, general AI discussion and mixed content. Trading is not treated as the identity of all members.",
+      "n_authors": 16019,
+      "confidence": "low"
+    },
+    "3": {
+      "label": "AI in education & research",
+      "display_label": "AI in education & research",
+      "short_description": "Education, research, writing and student keywords; samples include teaching, research tools, ethics and academic events, with some general commentary.",
+      "n_authors": 15120,
+      "confidence": "medium"
+    },
+    "4": {
+      "label": "AI-art sharing & NFTs",
+      "display_label": "AI-art sharing & NFTs",
+      "short_description": "AI-art, Midjourney, collection and NFT keywords; samples prominently share generated artwork, art sales and image tools. Some criticism occurs; the label does not mean every member endorses AI art.",
+      "n_authors": 11623,
+      "confidence": "medium"
+    },
+    "5": {
+      "label": "AI technology & industry news",
+      "display_label": "AI technology & industry news",
+      "short_description": "Machine-learning, data-science and automated-feed keywords; the cross-author sample is broader technology, industry and application news. Automated photo-feed terms do not establish that the community consists of bots.",
+      "n_authors": 8663,
+      "confidence": "medium"
+    },
+    "6": {
+      "label": "AI crypto projects & launchpads",
+      "display_label": "AI crypto projects & launchpads",
+      "short_description": "Launchpad, AIPAD, crypto and token keywords; samples broadly promote or discuss AI-related crypto projects, NFTs and launches. No inference of coordination or account automation.",
+      "n_authors": 5530,
+      "confidence": "medium"
+    },
+    "7": {
+      "label": "AI & blockchain projects",
+      "display_label": "AI & blockchain projects",
+      "short_description": "Blockchain, Matrix, tokens and project keywords; samples combine AI-linked crypto investment, blockchain applications and general AI content.",
+      "n_authors": 4430,
+      "confidence": "medium"
+    },
+    "8": {
+      "label": "AI research & healthcare",
+      "display_label": "AI research & healthcare",
+      "short_description": "Preprint and generated-haiku terms appear in aggregate keywords; distinct-author samples prominently include medical AI, research, technical tools and policy. The name follows that broader evidence rather than calling all members haiku accounts.",
+      "n_authors": 3233,
+      "confidence": "medium"
+    },
+    "9": {
+      "label": "NFT collections & AI art",
+      "display_label": "NFT collections & AI art",
+      "short_description": "NFT, llama and art-collection terms; samples include collection promotion, AI artwork and trading-related discussion. Llama collection mentions are not necessarily language-model references.",
+      "n_authors": 2997,
+      "confidence": "medium"
+    },
+    "10": {
+      "label": "AI-token trading & promotion",
+      "display_label": "AI-token trading & promotion",
+      "short_description": "AI-token, Telegram and crypto-project terms; samples discuss token launches, trading, project promotion and AI-branded products. Promotional content does not prove coordinated or automated activity.",
+      "n_authors": 2850,
+      "confidence": "medium"
+    },
+    "11": {
+      "label": "Portrait apps & general chat",
+      "display_label": "Portrait apps & general chat",
+      "short_description": "Dawn and portrait-app keywords; samples mix avatar generation with informal multilingual conversation and unrelated uses of ai. No location or ethnicity is inferred.",
+      "n_authors": 1637,
+      "confidence": "low"
+    },
+    "12": {
+      "label": "Anime-style AI images",
+      "display_label": "Anime-style AI images",
+      "short_description": "Stable Diffusion, NovelAI, anime and image tags; samples include generated anime-style images, commissions, adult-oriented content and art debate. Content description only.",
+      "n_authors": 1193,
+      "confidence": "medium"
+    },
+    "13": {
+      "label": "AI-art debate & image prompts",
+      "display_label": "AI-art debate & image prompts",
+      "short_description": "Art, image-prompt and debate keywords; samples combine support, objections and general discussion of generated images and creative tools. A mixed stance, not an exclusively pro- or anti-AI group.",
+      "n_authors": 1110,
+      "confidence": "low"
+    },
+    "14": {
+      "label": "AI, writing & creative media",
+      "display_label": "AI, writing & creative media",
+      "short_description": "Generated-image and feed keywords; sampled posts additionally cover fiction, music, writing and general AI commentary. Broad creative-media label retained at low confidence.",
+      "n_authors": 1021,
+      "confidence": "low"
+    },
+    "16": {
+      "label": "AI stocks & trading posts",
+      "display_label": "AI stocks & trading posts",
+      "short_description": "Stock, trading and AI-company keywords; samples contain substantial stock-ticker discussion alongside technology news and general AI commentary.",
+      "n_authors": 656,
+      "confidence": "medium"
+    },
+    "15": {
+      "label": "ChatGPT tools & general chat",
+      "display_label": "ChatGPT tools & general chat",
+      "short_description": "ChatGPT and tool keywords; samples mix coding, education, general conversation, politics and wordplay. No geographic or demographic identity is assigned.",
+      "n_authors": 645,
+      "confidence": "low"
+    },
+    "18": {
+      "label": "Web3, music & marketing",
+      "display_label": "Web3, music & marketing",
+      "short_description": "Web3, music and marketing keywords; the cross-author sample is diffuse, including creative tools, commentary, crypto and unrelated references. This is a loose descriptive grouping.",
+      "n_authors": 468,
+      "confidence": "low"
+    },
+    "21": {
+      "label": "AI content & marketing",
+      "display_label": "AI content & marketing",
+      "short_description": "Content, SEO, marketing and writing-tool keywords; samples support a focus on content production and marketing applications, alongside broader technical commentary.",
+      "n_authors": 456,
+      "confidence": "medium"
+    },
+    "20": {
+      "label": "AI industry & India news",
+      "display_label": "AI industry & India news",
+      "short_description": "Industry, technology and India-reference keywords; samples include AI products, policy and news. At least one sampled ai reference is Air India, and no author location is inferred.",
+      "n_authors": 436,
+      "confidence": "medium"
+    },
+    "17": {
+      "label": "Games & game-development AI",
+      "display_label": "Games & game-development AI",
+      "short_description": "Game-development terms and promotional keywords; the distinct-author sample mainly concerns game AI, indie development, tools and games. Business-promotion keywords do not justify defining the whole group as promotion.",
+      "n_authors": 423,
+      "confidence": "medium"
+    }
+  }
+}
