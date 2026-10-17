@@ -1,0 +1,51 @@
+{
+  "matched_authors": 164291,
+  "matched_edges": 782974,
+  "full_network_nodes": 202710,
+  "full_network_edges": 882530,
+  "connected_components": 2833,
+  "largest_component": 161035,
+  "isolates": 2551,
+  "layout_mode": "matched_only_drl",
+  "seed": 42,
+  "community_algorithm": "leiden_directed",
+  "topic_labels": [
+    "Education & fandom (mixed)",
+    "AI images & avatars (mixed)",
+    "AI art & artists' debate",
+    "Writing, reviews & mixed content",
+    "Games & fandom (mixed)",
+    "AI research & industry",
+    "Crypto promotion & giveaways",
+    "AI crypto launchpads",
+    "General AI use, tools & writing",
+    "AI art sharing & NFTs",
+    "Politics & AI bias",
+    "Crypto & blockchain"
+  ],
+  "note": "Coordinates use matched-to-matched edges. Disconnected component positions are arbitrary.",
+  "topic_colours": [
+    "#e8a0bd",
+    "#a9d4ed",
+    "#35b9ff",
+    "#909f3d",
+    "#b28a60",
+    "#e65bdb",
+    "#b9bec5",
+    "#4b9f98",
+    "#ff6d3a",
+    "#f1d54a",
+    "#9975e8",
+    "#54c97e"
+  ],
+  "analysis_status": "User-selected twelve-topic exploratory reference; repeated-fit evidence is documented in METHODS.md.",
+  "topic_model": {
+    "K": 12,
+    "representation": "tfidf_unigram",
+    "alpha": 0.3,
+    "eta": 0.1,
+    "seed": 42,
+    "max_iter": 50,
+    "selection": "User-selected existing full-population fit after comparing8and12 topics"
+  }
+}

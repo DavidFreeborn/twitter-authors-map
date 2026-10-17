@@ -6,7 +6,7 @@
 // Data
 let nodes = [];
 let summary = {};
-const ASSET_VERSION = '20261013-lenses-4';
+const ASSET_VERSION = '20261017-standardized-1';
 const versionedAsset = path => `${path}?v=${ASSET_VERSION}`;
 
 // Descriptive labels for the supplied network communities
@@ -20,7 +20,8 @@ let communitySizes = {};         // exact matched-author count for every communi
 // cloud is on screen and kept in ordinary JS memory, never in GPU buffers.
 let examplePosts = null;
 let examplePostsState = 'idle';  // idle | loading | ready | failed
-const hideExamplePosts = document.currentScript?.dataset.hidePosts === 'true';
+const anonymousMode = document.currentScript?.dataset.anonymous === 'true';
+const hideExamplePosts = anonymousMode || document.currentScript?.dataset.hidePosts === 'true';
 
 // Per-emotion mean/SD across all matched authors, used only to pick each
 // author's two most distinctive emotions for display. Computed at load time
@@ -113,7 +114,8 @@ let TOPIC_PALETTE = ["#e8a0bd", "#a9d4ed", "#35b9ff", "#909f3d", "#b28a60", "#e6
 let focusKeys = new Set(), focusKind = null, focusModel = '12';
 let focusMask = null, focusBuffer = null, focusTotals = null;
 let topicSizes = [], topicOrder = [], communityOrder = [];
-function focusIsActive() { return focusKeys.size > 0; }
+let nearestIds = null, nearestK = 10, nearestRows = [];
+function focusIsActive() { return focusKeys.size > 0 || nearestIds !== null; }
 function communityKey(node) {
     const c=node[F.community];
     return c==null||c<0?'missing':communityIsLabelled(c)?String(c):'tail';
@@ -123,6 +125,7 @@ function topicKey(node, model = activeTopicModel) {
     return Number.isInteger(t)&&t>=0&&t<Number(model)?t:-1;
 }
 function matchesFocus(node) {
+    if(nearestIds) return nearestIds.has(node[F.id]);
     return !focusIsActive() || focusKeys.has(focusKind==='topic'?topicKey(node,focusModel):communityKey(node));
 }
 function buildLegendOrder() {
@@ -144,13 +147,14 @@ function initialiseFocusControls() {
     applyFocus();
 }
 function toggleGroup(kind,key,checked) {
+    nearestIds=null;selectedNode=null;
     // Like the other atlases, ticking in a different lens starts a new selection.
     if(focusKind!==kind || (kind==='topic' && focusModel!==activeTopicModel)){focusKeys.clear();focusKind=kind;focusModel=activeTopicModel;}
     checked?focusKeys.add(key):focusKeys.delete(key);
     if(!focusKeys.size)focusKind=null;
-    applyFocus();
+    applyFocus();showGroupPanel();updateLegend(colorMode);
 }
-function clearFocus() {focusKeys.clear();focusKind=null;applyFocus();updateLegend(colorMode);}
+function clearFocus() {nearestIds=null;focusKeys.clear();focusKind=null;closeAuthorPanel();applyFocus();updateLegend(colorMode);document.getElementById('restore-details')?.setAttribute('hidden','');}
 function renderSelectionLegend(mode) {
     const container=document.getElementById('legend');
     const kind=mode==='community'?'community':'topic';
@@ -180,26 +184,26 @@ function applyFocus() {
     }
     focusTotals={count,in3d};if(focusBuffer)focusBuffer.subdata(focusMask);
     pickDirty=true;document.getElementById('tooltip').style.display='none';
-    updateFocusStatus();if(selectedNode)updateFoundStatus(selectedNode);
+    updateFocusStatus();
 }
 function updateFocusStatus() {
     if(!focusTotals)return;
     const {count,in3d}=focusTotals;
     document.getElementById('focus-map-status').hidden=!focusIsActive();
-    document.getElementById('focus-status').textContent=count.toLocaleString()+' selected'+(focusKind==='topic'?` · ${focusModel} topics`:'')+(viewMode==='3d'?' · '+in3d.toLocaleString()+' in 3D':'');
+    document.getElementById('focus-status').textContent=count.toLocaleString()+' authors selected'+(nearestIds?' · retweet connections':` · ${focusKeys.size} ${focusKind==='topic'?'topics':'communities'}`)+(focusKind==='topic'?` · ${focusModel}-topic model`:'')+(viewMode==='3d'?' · '+in3d.toLocaleString()+' in 3D':'');
     document.getElementById('focus-status').title=focusKind==='topic'?`Selected in ${focusModel}-topic model`:'Selected in Communities';
 }
 function drawFocusedCloud(draw,props,is3d) {
     if(!focusIsActive()){draw({...props,focusPass:-1});return;}
     draw({...props,focusPass:0});
     if(is3d)regl.clear({depth:1});
-    draw({...props,focusPass:1});
+    draw({...props,focusPass:nearestIds ? 2 : 1});
 }
 
 
 // Optional lenses are joined by string author ID and never overwrite the base data.
 let activeTopicModel = '12', alternativeTopics = null, authorMetrics = null;
-let baseTopicNames = null, baseTopicPalette = null;
+let baseTopicNames = null, baseTopicPalette = null, alternativeTopicLabels = null;
 let topicLoadPromise = null, metricsLoadPromise = null;
 const MEASURES = {
     followers: ['Followers', 'Recorded during data collection; not current counts.'],
@@ -250,7 +254,7 @@ async function changeTopicModel() {
             const payload=await topicLoadPromise;
             const aligned=alignLens(payload,8,true);
             if(payload.labels?.length!==8||payload.colours?.length!==8||payload.colours.some(c=>!/^#[0-9a-f]{6}$/i.test(c)))throw new Error('Invalid topic legend');
-            alternativeTopics=aligned;
+            alternativeTopics=aligned;alternativeTopicLabels=payload.labels.slice();
         }
         const payload=requested==='8'?await topicLoadPromise:null;
         activeTopicModel=requested;
@@ -684,6 +688,7 @@ function initWebGL() {
             attribute vec3 color;
             attribute float size;
             attribute float focused;
+            uniform float focusPass;
             uniform vec2 viewOffset;
             uniform float viewScale;
             uniform vec2 resolution;
@@ -695,7 +700,7 @@ function initWebGL() {
                 vec2 pos = (position - viewOffset) * viewScale;
                 pos.x *= resolution.y / resolution.x;
                 gl_Position = vec4(pos, 0, 1);
-                gl_PointSize = size * viewScale * 50.0;
+                gl_PointSize = focusPass > 0.5 ? max(focusPass > 1.5 ? 14.0 : 4.0, size * viewScale * 90.0) : size * viewScale * 50.0;
                 vColor = color;
             }
         `,
@@ -711,9 +716,10 @@ function initWebGL() {
                 vec2 cxy = 2.0 * gl_PointCoord - 1.0;
                 float r = dot(cxy, cxy);
                 if (r > 1.0) discard;
+                if(focusPass > 1.5){gl_FragColor=vec4(r>0.78?vec3(0.03):r>0.38?vec3(1.0):vColor,1.0);return;}
                 float alpha = 1.0 - smoothstep(0.5, 1.0, r);
                 gl_FragColor = focusPass>-0.5 && focusPass<0.5
-                    ?vec4(vec3(0.36,0.38,0.43),alpha*0.16):vec4(vColor,alpha);
+                    ?vec4(mix(vColor,vec3(0.2,0.22,0.27),0.8),alpha*0.07):vec4(focusPass>0.5?mix(vColor,vec3(1.0),smoothstep(0.45,0.75,r)*0.7):vColor,focusPass>0.5?max(alpha,0.85):alpha);
             }
         `,
         attributes: {
@@ -746,6 +752,7 @@ function initWebGL() {
             attribute vec3 color;
             attribute float size;
             attribute float focused;
+            uniform float focusPass;
             uniform mat4 view;
             uniform mat4 projection;
             uniform float pointScale;
@@ -765,7 +772,7 @@ function initWebGL() {
                 vec4 cameraPosition = view * vec4(position, 1.0);
                 float depth = max(0.08, -cameraPosition.z);
                 gl_Position = projection * cameraPosition;
-                gl_PointSize = clamp(size * pointScale / depth, 1.0, 14.0);
+                gl_PointSize = focusPass > 0.5 ? clamp(size * pointScale * 1.8 / depth, focusPass > 1.5 ? 14.0 : 4.0, 20.0) : clamp(size * pointScale / depth, 1.0, 14.0);
                 vColor = color;
                 vDepth = depth;
             }
@@ -785,12 +792,13 @@ function initWebGL() {
                 vec2 cxy = 2.0 * gl_PointCoord - 1.0;
                 float r = dot(cxy, cxy);
                 if (r > 1.0) discard;
+                if(focusPass > 1.5){gl_FragColor=vec4(r>0.78?vec3(0.03):r>0.38?vec3(1.0):vColor,1.0);return;}
                 float edge = 1.0 - smoothstep(0.52, 1.0, r);
                 if (edge < 0.025) discard;
                 float fog = 1.0 - smoothstep(fogNear, fogFar, vDepth);
                 float alpha = edge * mix(0.06, 0.56, fog);
                 gl_FragColor = focusPass>-0.5 && focusPass<0.5
-                    ?vec4(vec3(0.36,0.38,0.43),alpha*0.16):vec4(vColor,alpha);
+                    ?vec4(mix(vColor,vec3(0.2,0.22,0.27),0.8),alpha*0.07):vec4(focusPass>0.5?mix(vColor,vec3(1.0),smoothstep(0.45,0.75,r)*0.7):vColor,focusPass>0.5?max(alpha,0.85):alpha);
             }
         `,
         attributes: {
@@ -898,18 +906,22 @@ function initWebGL() {
         `,
         frag: `
             precision highp float;
+            uniform vec3 selectedColor;
             void main() {
                 vec2 cxy = 2.0 * gl_PointCoord - 1.0;
                 float r = dot(cxy, cxy);
-                if (r > 1.0 || r < 0.46) discard;
-                gl_FragColor = vec4(1.0, 1.0, 1.0, 0.94);
+                if (r > 1.0) discard;
+                if(r < 0.44){gl_FragColor=vec4(selectedColor,1.0);return;}
+                vec3 ring = r > 0.84 ? vec3(1.0) : r > 0.62 ? vec3(0.03) : vec3(1.0);
+                gl_FragColor = vec4(ring,1.0);
             }
         `,
         attributes: { position: selectedPosition3DBuffer },
         uniforms: {
             view: regl.prop('view'),
             projection: regl.prop('projection'),
-            pointSize: regl.prop('pointSize')
+            pointSize: regl.prop('pointSize'),
+            selectedColor: regl.prop('selectedColor')
         },
         count: 1,
         primitive: 'points',
@@ -961,7 +973,8 @@ function render(now) {
             drawSelected3D({
                 view: camera3D.view,
                 projection: camera3D.projection,
-                pointSize: 15 * dpr
+                pointSize: 20 * dpr,
+                selectedColor: selectedAuthorColour()
             });
         }
     } else {
@@ -974,6 +987,7 @@ function render(now) {
 
     lastFrameTime = now;
 
+    drawSelectedMarker2D();
     requestAnimationFrame(render);
 }
 
@@ -1279,12 +1293,6 @@ function updateProjectionUi() {
             ? 'Drag to rotate · Shift/right-drag to pan · Wheel to zoom'
             : 'Drag to pan · Wheel to zoom';
     }
-    const status = document.getElementById('search-status');
-    const query = document.getElementById('search-input').value.trim();
-    const index = nodeIndexById.get(query);
-    if (status?.classList.contains('found') && index !== undefined) {
-        updateFoundStatus(nodes[index]);
-    }
 }
 
 function reset3DView(immediate) {
@@ -1543,7 +1551,7 @@ function setupEventListeners() {
 
     // Escape closes the selected-author panel
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeAuthorPanel();
+        if (e.key === 'Escape') { const dialog=document.querySelector('dialog[open]'); if(dialog)dialog.close(); else if(document.getElementById('search-input').value){document.getElementById('search-input').value='';document.getElementById('search-status').textContent='';} else clearFocus(); }
     });
 
     updateProjectionUi();
@@ -1638,7 +1646,7 @@ function showTooltip(e) {
 
     if (nearest) {
         hoverNode = nearest;
-        let html = `<div class="tt-author">${nearest[F.id]}</div>`;
+        let html = `<div class="tt-author">${anonymousMode ? 'Author' : nearest[F.id]}</div>`;
         html += `<div class="tt-row"><span class="tt-label">Community</span><span class="tt-value">${escapeHtml(communityLabel(nearest[F.community]))}</span></div>`;
         html += `<div class="tt-row"><span class="tt-label">Retweets, study network</span><span class="tt-value">${nearest[F.fullDegree]?.toFixed(0) || '-'}</span></div>`;
         html += `<div class="tt-row"><span class="tt-label">Retweets, displayed authors</span><span class="tt-value">${nearest[F.matchedDegree]?.toFixed(0) || '-'}</span></div>`;
@@ -1763,7 +1771,7 @@ function showAuthorPanel(node) {
         ['Trust', node[F.trust]],
     ];
 
-    let html = `<div class='ap-author'>${escapeHtml(node[F.id])}</div>`;
+    let html = `<div class='ap-author'>${anonymousMode ? 'Author' : escapeHtml(node[F.id])}</div>`;
     html += `<div class='ap-section ap-summary'>`;
     html += row('Community', escapeHtml(communityLabel(community)));
     if (communityN !== null) html += row('Community size', communityN.toLocaleString());
@@ -1792,8 +1800,10 @@ function showAuthorPanel(node) {
 
     if (!hideExamplePosts) html += `<div class='ap-section'>${examplePostHtml(node)}</div>`;
 
+    html += `<div class='ap-section'><button onclick='locateSelected()'>Locate on map</button><h3>Closest retweet connections</h3><p>Direct connections ranked by total retweets in both directions, among authors in this atlas.</p><label>Up to <input id='nearest-k' type='number' min='1' max='50' value='${nearestK}' onchange='nearestK=Math.max(1,Math.min(50,Number(this.value)||1));highlightNearest()'></label><button onclick='highlightNearest()'>Highlight</button><button onclick='nearestIds=null;applyFocus();showAuthorPanel(selectedNode)'>Deselect neighbours</button><div id='nearest-list'></div></div>`;
     body.innerHTML = html;
     panel.classList.remove('hidden');
+    if(nearestIds)void highlightNearest();
 }
 function closeAuthorPanel() {
     selectedNode = null;
@@ -1805,43 +1815,16 @@ function closeAuthorPanel() {
 // Controls
 // ============================================================================
 
-function updateFoundStatus(node) {
-    const status = document.getElementById('search-status');
-    if (!status) return;
-    status.className = 'search-status found';
-    status.innerHTML = `Found <strong>${escapeHtml(node[F.id])}</strong><br>`
-        + escapeHtml(communityLabel(node[F.community]))
-        + (!matchesFocus(node)?'<br>Outside the selected group. Clear selection to show on map.':'')
-        + (viewMode === '3d' && !nodeVisibleIn3D(node)
-            ? '<br>Outside the 3D giant component' : '');
-}
-
 function searchAuthor() {
-    const query = document.getElementById('search-input').value.trim();
-    if (!query) return;
-
-    const index = nodeIndexById.get(query);
-    const node = index === undefined ? null : nodes[index];
-    const status = document.getElementById('search-status');
-    if (node) {
-        if (viewMode === '3d') {
-            focus3DNode(node);
-        } else {
-            viewX = node.x;
-            viewY = node.y;
-            viewScale = 0.3;
-        }
-
-        updateFoundStatus(node);
-        showAuthorPanel(node);
-    } else {
-        if (status) {
-            status.className = 'search-status missing';
-            status.textContent = `Author ${query} not found among the ${nodes.length.toLocaleString()} matched authors`;
-        }
-        closeAuthorPanel();
-    }
+ const q=document.getElementById('search-input').value.trim().toLowerCase();const status=document.getElementById('search-status');if(!q){status.replaceChildren();return;}
+ const tokens=q.normalize('NFD').replace(/[\u0300-\u036f]/g,'').split(/\W+/).filter(Boolean);
+ const exact=!anonymousMode?nodes[nodeIndexById.get(q)]:null;
+ const found=exact?[exact]:nodes.filter(n=>{let text=[communityLabel(n[F.community]),TOPIC_NAMES[dominantTopic(n)],!anonymousMode?n[F.id]:'',!hideExamplePosts?examplePosts?.[n[F.id]]?.[3]:''].join(' ').toLowerCase();return tokens.every(t=>text.includes(t)||text.split(/\W+/).some(w=>t.length>3&&editOne(w,t)));}).slice(0,12);
+ status.replaceChildren();if(!found.length){status.textContent='No matching authors';return;}
+ for(const n of found){const b=document.createElement('button');b.className='review-result';b.textContent=(anonymousMode?'Author':n[F.id])+' · '+communityLabel(n[F.community]);b.onclick=()=>{showAuthorPanel(n);status.replaceChildren();document.getElementById('search-input').value='';};status.append(b);}
 }
+function editOne(a,b){if(Math.abs(a.length-b.length)>1)return false;let i=0,j=0,e=0;while(i<a.length&&j<b.length){if(a[i]===b[j]){i++;j++;}else{if(++e>1)return false;if(a.length<=b.length)j++;if(a.length>=b.length)i++;}}return e+(i<a.length||j<b.length?1:0)<=1;}
+function locateSelected(){if(!selectedNode)return;if(viewMode==='3d')focus3DNode(selectedNode);else{viewX=selectedNode.x;viewY=selectedNode.y;viewScale=Math.max(viewScale,0.3);}}
 function fitted2DScale(rangeX, rangeY) {
     const canvas = document.getElementById('graph-canvas');
     const aspect = Math.max(1, canvas.clientWidth) / Math.max(1, canvas.clientHeight);
@@ -1886,3 +1869,42 @@ function zoomOut() {
 
 // Start
 document.addEventListener('DOMContentLoaded', init);
+
+// Shared interaction review: explicit selection, unchanged camera and private build support.
+function selectedAuthorColour(){const i=nodeIndexById.get(selectedNode?.id);return i===undefined?[1,1,1]:[colors[i*3],colors[i*3+1],colors[i*3+2]];}
+function drawSelectedMarker2D(){const m=document.getElementById('selected-marker');if(!m)return;if(!selectedNode||viewMode!=='2d'){m.hidden=true;return;}const c=document.getElementById('graph-canvas');const aspect=c.clientWidth/c.clientHeight;const x=c.clientWidth/2+(selectedNode.x-viewX)*viewScale*c.clientHeight/2;const y=c.clientHeight/2-(selectedNode.y-viewY)*viewScale*c.clientHeight/2;m.hidden=x<0||y<0||x>c.clientWidth||y>c.clientHeight;m.style.left=x+'px';m.style.top=y+'px';m.style.backgroundColor='rgb('+selectedAuthorColour().map(v=>Math.round(v*255)).join(',')+')';}
+function cosineTopic(a,b){let dot=0,aa=0,bb=0;for(let i=0;i<12;i++){const x=a['t'+i]||0,y=b['t'+i]||0;dot+=x*y;aa+=x*x;bb+=y*y;}return aa&&bb?dot/Math.sqrt(aa*bb):0;}
+let retweetNeighbourPromise=null;
+async function highlightNearest(){
+ if(!selectedNode)return;
+ const selected=selectedNode,selectedId=selected.id;let list=document.getElementById('nearest-list');
+ list.textContent='Loading connections…';
+ try{
+  if(!retweetNeighbourPromise)retweetNeighbourPromise=fetch(versionedAsset('data/retweet-neighbours.json')).then(r=>{if(!r.ok)throw new Error('Connection data could not be loaded');return r.json();}).then(data=>{if(data.nodeCount!==nodes.length||data.rows.length!==nodes.length)throw new Error('Connection data does not match the map');return data;}).catch(e=>{retweetNeighbourPromise=null;throw e;});
+  const data=await retweetNeighbourPromise;
+  if(selectedNode?.id!==selectedId)return;list=document.getElementById('nearest-list');if(!list)return;
+  nearestRows=data.rows[nodeIndexById.get(selectedId)].slice(0,nearestK).map(([index,weight])=>({n:nodes[index],weight}));
+  nearestIds=new Set([selectedId,...nearestRows.map(r=>r.n.id)]);
+  applyFocus();list.replaceChildren();
+  if(!nearestRows.length){list.textContent='No direct retweet connections to other authors in this atlas.';return;}
+  const count=document.createElement('p');count.textContent=nearestRows.length<nearestK?'Showing all '+nearestRows.length+' available direct connection'+(nearestRows.length===1?'':'s')+'.':'Showing '+nearestRows.length+' closest retweet connections.';list.append(count);
+  for(const {n,weight} of nearestRows){const b=document.createElement('button');b.className='review-result';b.textContent=(anonymousMode?'Author':n.id)+' · '+communityLabel(n.c)+' · '+weight.toLocaleString()+' retweets';b.onclick=()=>{nearestIds=null;applyFocus();showAuthorPanel(n);};list.append(b);}
+ }catch(error){if(selectedNode?.id===selectedId&&list.isConnected)list.textContent=error.message+'. Select Highlight to retry.';}
+}
+
+function showGroupPanel(){if(!focusKeys.size){closeAuthorPanel();return;}const members=nodes.filter(matchesFocus);const centroid={};for(let i=0;i<12;i++)centroid['t'+i]=members.reduce((s,n)=>s+(n['t'+i]||0),0)/Math.max(1,members.length);const examples=members.map(n=>({n,s:cosineTopic(n,centroid)})).sort((a,b)=>b.s-a.s).slice(0,10);const body=document.getElementById('author-panel-body');body.replaceChildren();const h=document.createElement('h2');h.textContent=focusKeys.size+' '+(focusKind==='topic'?'topics':'communities')+' selected';body.append(h);for(const key of focusKeys){const p=document.createElement('p');p.textContent=focusKind==='topic'?(focusModel==='12'?baseTopicNames?.[key]:alternativeTopicLabels?.[key])||TOPIC_NAMES[key]||'No data':communityLabels[key]?.short_description||communityLabel(Number(key));body.append(p);}const label=document.createElement('p');label.textContent='Characteristic authors: closest to the selected group’s centroid in 12-topic mixture space. Example posts remain illustrative.';body.append(label);for(const {n} of examples){const b=document.createElement('button');b.className='review-result';b.textContent=(anonymousMode?'Author':n.id)+' · '+communityLabel(n.c);b.onclick=()=>showAuthorPanel(n);body.append(b);if(!hideExamplePosts&&examplePosts?.[n.id]){const p=document.createElement('p');p.textContent=examplePosts[n.id][3];body.append(p);}}document.getElementById('author-panel').classList.remove('hidden');document.getElementById('restore-details').hidden=true;}
+function minimiseDetails(){document.getElementById('author-panel').classList.add('hidden');document.getElementById('restore-details').hidden=false;}
+function restoreDetails(){document.getElementById('restore-details').hidden=true;document.getElementById('author-panel').classList.remove('hidden');}
+function minimiseControls(){const c=document.getElementById('controls');c.classList.toggle('minimised');document.getElementById('controls-toggle').textContent=c.classList.contains('minimised')?'›':'‹';}
+function openMethodology(){location.hash='methodology';}
+function showWorkspace(){const page=['associations','methodology'].includes(location.hash.slice(1))?location.hash.slice(1):'map';document.getElementById('app').hidden=page!=='map';document.getElementById('method-page').hidden=page!=='methodology';document.getElementById('association-page').hidden=page!=='associations';document.querySelector('.review-header-search').hidden=page!=='map';document.querySelectorAll('.review-header nav a').forEach(a=>a.setAttribute('aria-current',a.hash==='#'+page?'page':'false'));if(page==='associations')openAssociations();if(page==='map')window.dispatchEvent(new Event('resize'));}
+window.addEventListener('hashchange',showWorkspace);
+window.addEventListener('load',showWorkspace);
+
+let associationTab='overview',associationRows='community',associationColumns='topics12',associationCache=new Map();
+const associationLenses=[['community','Communities'],['topics12','12 topics'],['topics8','8 topics']];
+function assignment(n,l){if(l==='community')return String(n.c);return String(topicKey(n,l==='topics12'?'12':'8'));}
+function assignmentLabel(l,k){if(l==='community')return communityLabel(Number(k));if(l==='topics12')return baseTopicNames?.[Number(k)]||('Topic '+k);return alternativeTopicLabels?.[Number(k)]||('Topic '+(Number(k)+1));}
+function association(a,b){const key=a+'|'+b;if(associationCache.has(key))return associationCache.get(key);const rows=new Map(),cols=new Map(),cells=new Map();let n=0;for(const p of nodes){const x=assignment(p,a),y=assignment(p,b);if(x==='-1'||y==='-1')continue;n++;rows.set(x,(rows.get(x)||0)+1);cols.set(y,(cols.get(y)||0)+1);const k=x+'|'+y;cells.set(k,(cells.get(k)||0)+1);}let chi=0;for(const [x,r]of rows)for(const[y,c]of cols){const e=r*c/n,o=cells.get(x+'|'+y)||0;chi+=(o-e)**2/e;}const r=rows.size,c=cols.size,phi=Math.max(0,chi/n-(r-1)*(c-1)/(n-1)),den=Math.min(r-1-(r-1)**2/(n-1),c-1-(c-1)**2/(n-1));const result={n,rows,cols,cells,v:den>0?Math.sqrt(phi/den):0};associationCache.set(key,result);return result;}
+async function openAssociations(){document.getElementById('association-content').textContent='Loading…';try{if(!nodes?.length){document.getElementById('association-content').textContent='Loading author data…';setTimeout(()=>{if(location.hash==='#associations')openAssociations();},500);return;}if(!alternativeTopics){topicLoadPromise=fetchLens('data/topics-8.json');const p=await topicLoadPromise;alternativeTopics=alignLens(p,8,true);alternativeTopicLabels=p.labels.slice();}renderAssociations();}catch(e){topicLoadPromise=null;const target=document.getElementById('association-content');target.textContent='Could not load association data: '+e.message;const retry=document.createElement('button');retry.textContent='Retry';retry.onclick=openAssociations;target.append(retry);}}
+function renderAssociations(){const container=document.getElementById('association-content');if(associationTab==='overview'){let html='<p>Bias-corrected Cramér’s V. Click a cell for detailed comparison. Each observation is an author.</p><table class="matrix"><tr><th></th>'+associationLenses.map(l=>'<th>'+l[1]+'</th>').join('')+'</tr>';for(const a of associationLenses){html+='<tr><th>'+a[1]+'</th>';for(const b of associationLenses){const value=a[0]===b[0]?1:association(a[0],b[0]).v;html+='<td style="background:rgba(20,125,156,'+Math.max(.15,value)+')"><button data-row="'+a[0]+'" data-col="'+b[0]+'">'+value.toFixed(3)+'</button></td>';}html+='</tr>';}container.innerHTML=html+'</table><p>'+nodes.length.toLocaleString()+' authors; continuous sentiment, emotion and count measures are excluded.</p>';container.querySelectorAll('[data-row]').forEach(b=>b.onclick=()=>{associationRows=b.dataset.row;associationColumns=b.dataset.col;associationTab='detail';renderAssociations();});return;}const r=association(associationRows,associationColumns);let html='<label>Rows <select id="assoc-rows">'+associationLenses.map(l=>'<option value="'+l[0]+'" '+(l[0]===associationRows?'selected':'')+'>'+l[1]+'</option>').join('')+'</select></label> <label>Columns <select id="assoc-cols">'+associationLenses.map(l=>'<option value="'+l[0]+'" '+(l[0]===associationColumns?'selected':'')+'>'+l[1]+'</option>').join('')+'</select></label><p>'+r.n.toLocaleString()+' authors · Cramér’s V '+r.v.toFixed(3)+'. Pearson residuals: blue fewer, red more than expected. Showing the largest 20 groups; calculations use full margins.</p>';const rows=[...r.rows].sort((a,b)=>b[1]-a[1]).slice(0,20),cols=[...r.cols].sort((a,b)=>b[1]-a[1]).slice(0,20);html+='<table class="matrix"><tr><th></th>'+cols.map(([k])=>'<th>'+escapeHtml(assignmentLabel(associationColumns,k))+'</th>').join('')+'</tr>';for(const[x,count]of rows){html+='<tr><th>'+escapeHtml(assignmentLabel(associationRows,x))+'</th>';for(const[y,c]of cols){const observed=r.cells.get(x+'|'+y)||0,expected=count*c/r.n,res=(observed-expected)/Math.sqrt(expected);html+='<td title="Observed '+observed+'; expected '+expected.toFixed(1)+'" style="background:'+(res>0?'rgba(180,44,58,':'rgba(30,100,175,')+Math.max(.1,Math.min(1,Math.abs(res)/4))+')">'+res.toFixed(1)+'</td>';}html+='</tr>';}container.innerHTML=html+'</table>';document.getElementById('assoc-rows').onchange=e=>{associationRows=e.target.value;renderAssociations();};document.getElementById('assoc-cols').onchange=e=>{associationColumns=e.target.value;renderAssociations();};}
