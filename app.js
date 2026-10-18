@@ -700,7 +700,7 @@ function initWebGL() {
                 vec2 pos = (position - viewOffset) * viewScale;
                 pos.x *= resolution.y / resolution.x;
                 gl_Position = vec4(pos, 0, 1);
-                gl_PointSize = focusPass > 0.5 ? max(focusPass > 1.5 ? 14.0 : 4.0, size * viewScale * 90.0) : size * viewScale * 50.0;
+                gl_PointSize = focusPass > 1.5 ? max(14.0, size * viewScale * 90.0) : size * viewScale * 50.0;
                 vColor = color;
             }
         `,
@@ -719,7 +719,7 @@ function initWebGL() {
                 if(focusPass > 1.5){gl_FragColor=vec4(r>0.78?vec3(0.03):r>0.38?vec3(1.0):vColor,1.0);return;}
                 float alpha = 1.0 - smoothstep(0.5, 1.0, r);
                 gl_FragColor = focusPass>-0.5 && focusPass<0.5
-                    ?vec4(mix(vColor,vec3(0.2,0.22,0.27),0.8),alpha*0.07):vec4(focusPass>0.5?mix(vColor,vec3(1.0),smoothstep(0.45,0.75,r)*0.7):vColor,focusPass>0.5?max(alpha,0.85):alpha);
+                    ?vec4(vec3(0.36,0.38,0.43),alpha*0.16):vec4(vColor,alpha);
             }
         `,
         attributes: {
@@ -772,7 +772,7 @@ function initWebGL() {
                 vec4 cameraPosition = view * vec4(position, 1.0);
                 float depth = max(0.08, -cameraPosition.z);
                 gl_Position = projection * cameraPosition;
-                gl_PointSize = focusPass > 0.5 ? clamp(size * pointScale * 1.8 / depth, focusPass > 1.5 ? 14.0 : 4.0, 20.0) : clamp(size * pointScale / depth, 1.0, 14.0);
+                gl_PointSize = focusPass > 1.5 ? clamp(size * pointScale * 1.8 / depth, 14.0, 20.0) : clamp(size * pointScale / depth, 1.0, 14.0);
                 vColor = color;
                 vDepth = depth;
             }
@@ -798,7 +798,7 @@ function initWebGL() {
                 float fog = 1.0 - smoothstep(fogNear, fogFar, vDepth);
                 float alpha = edge * mix(0.06, 0.56, fog);
                 gl_FragColor = focusPass>-0.5 && focusPass<0.5
-                    ?vec4(mix(vColor,vec3(0.2,0.22,0.27),0.8),alpha*0.07):vec4(focusPass>0.5?mix(vColor,vec3(1.0),smoothstep(0.45,0.75,r)*0.7):vColor,focusPass>0.5?max(alpha,0.85):alpha);
+                    ?vec4(vec3(0.36,0.38,0.43),alpha*0.16):vec4(vColor,alpha);
             }
         `,
         attributes: {
@@ -1771,7 +1771,8 @@ function showAuthorPanel(node) {
         ['Trust', node[F.trust]],
     ];
 
-    let html = `<div class='ap-author'>${anonymousMode ? 'Author' : escapeHtml(node[F.id])}</div>`;
+    panel.classList.remove('group-details');
+    let html = (focusKeys.size ? "<button class='ap-back' onclick='returnToGroup()'>← Back to selection</button>" : '') + `<div class='ap-author'>${anonymousMode ? 'Author' : escapeHtml(node[F.id])}</div>`;
     html += `<div class='ap-section ap-summary'>`;
     html += row('Community', escapeHtml(communityLabel(community)));
     if (communityN !== null) html += row('Community size', communityN.toLocaleString());
@@ -1892,7 +1893,27 @@ async function highlightNearest(){
  }catch(error){if(selectedNode?.id===selectedId&&list.isConnected)list.textContent=error.message+'. Select Highlight to retry.';}
 }
 
-function showGroupPanel(){if(!focusKeys.size){closeAuthorPanel();return;}const members=nodes.filter(matchesFocus);const centroid={};for(let i=0;i<12;i++)centroid['t'+i]=members.reduce((s,n)=>s+(n['t'+i]||0),0)/Math.max(1,members.length);const examples=members.map(n=>({n,s:cosineTopic(n,centroid)})).sort((a,b)=>b.s-a.s).slice(0,10);const body=document.getElementById('author-panel-body');body.replaceChildren();const h=document.createElement('h2');h.textContent=focusKeys.size+' '+(focusKind==='topic'?'topics':'communities')+' selected';body.append(h);for(const key of focusKeys){const p=document.createElement('p');p.textContent=focusKind==='topic'?(focusModel==='12'?baseTopicNames?.[key]:alternativeTopicLabels?.[key])||TOPIC_NAMES[key]||'No data':communityLabels[key]?.short_description||communityLabel(Number(key));body.append(p);}const label=document.createElement('p');label.textContent='Characteristic authors: closest to the selected group’s centroid in 12-topic mixture space. Example posts remain illustrative.';body.append(label);for(const {n} of examples){const b=document.createElement('button');b.className='review-result';b.textContent=(anonymousMode?'Author':n.id)+' · '+communityLabel(n.c);b.onclick=()=>showAuthorPanel(n);body.append(b);if(!hideExamplePosts&&examplePosts?.[n.id]){const p=document.createElement('p');p.textContent=examplePosts[n.id][3];body.append(p);}}document.getElementById('author-panel').classList.remove('hidden');document.getElementById('restore-details').hidden=true;}
+// Original fitted LDA term rankings (TF-IDF inputs), no refit.
+// K12: Drive 1MB6Cl56Nl-Gkz1n2Iw1yoQ7RhAR-rg2z, 11 October figures/Data/topic_top_terms.csv.
+// K8: Drive 1sUsIHQHg5bM26Yc59bJTMnH_aBJLan2y, eight-topic-figures/Data/topic_top_terms.csv.
+const TOPIC_TERMS = {"8":[["crypto","auto","nft","project","blockchain","50","follow","pump","hours","web3","fet","auto looks","token","bitcoin","metaverse","ocean","gem","trading","looks","eth"],["machinelearning","artificialintelligence","ml","datascience","healthcare","iot","health","join","2023","research","bigdata","innovation","analytics","cybersecurity","digital","robotics","science","fintech","security","global"],["aiart","art","collection","nft","gm","llama","midjourney","aiartwork","aiartcommunity","stablediffusion","nfts","eth","drop","thank","dawn","artist","digitalart","nftcommunity","piece","photography"],["aipad","political","political bias","bias","credibility","woke","irreparable","engineers building","damage credibility","credibility engineers","bias irreparable","building political","damage","engineers","ido","algalon","launchpad","nft","biden","building"],["art","shit","generated","anime","voice","bert","seinfeld","fuck","deepfake","fucking","somnium","porn","somnium files","files","destroyed","funny","lmao","fingers","hands","ugly"],["tools","content","language","llms","code","models","text","using","powered","students","writing","free","future","business","marketing","gpt3","education","api","10","large"],["art","human","generated","ve","using","used","real","ll","things","asked","did","better","does","humans","doesn","image","images","love","stuff","doing"],["art","artists","artist","stolen","steal","images","theft","generated images","bros","artstation","stealing","artists art","draw","opt","support","art community","love art","wanted","fuck","image"]],"12":[["llama","edtech","la","ni","wo","anderson","classroom","wes","edchat","ia","ultra","synth","domains","vocal","llamas","teachers","pic","shining","craiyon","diff"],["dawn","aiイラスト","na","dey","stablediffusion","novelai","pictures","picture","fine","waifudiffusion","football","thread","drake","peer","pressure","avi","waifu","cnft","hex","wan"],["art","artists","generated","artist","shit","images","using","image","real","voice","fuck","ve","stop","isn","draw","fucking","anime","love","bad","making"],["arena","ba","ne","pakistan","se","writingcommunity","snake","ki","ke","review","hai","rap","flux","blues","allen","ka","da","coz","khan","su"],["bard","dnd","chan","stereotypes","spider","mario","venti","ttrpg","delhi","fighter","rogue","au","birthday","egypt","rpg","indian","ancient","wizard","elf","hotel"],["artificialintelligence","machinelearning","ml","2023","datascience","healthcare","innovation","iot","analytics","join","bigdata","research","digital","business","cybersecurity","health","future","cloud","python","technologies"],["auto","50","follow","hours","nft","pump","looks","luna","project","giveaway","news","tweet","join","gem","crypto","bnx","proof","pass","web4ai","wl"],["aipad","ido","joined","arc","guaranteed","allocation","launchpad","chatgbt","whitelist","predictvision","earn","artificialintelligence","aiia","scheduled","ghana","update","pan","osint","doi","mighty"],["using","human","content","tools","text","code","writing","asked","ve","language","better","models","used","humans","future","things","does","llms","years","great"],["art","aiart","collection","gm","midjourney","nft","love","artist","aiartwork","aiartcommunity","thank","piece","drop","nfts","eth","created","photography","stablediffusion","digital","happy"],["bert","woke","political","elon","bias","asked","biden","musk","trump","damage","credibility","dan","irreparable","engineers","china","programmed","somnium","military","files","tesla"],["crypto","blockchain","web3","nft","project","token","projects","trading","fet","decentralized","narrative","btc","eth","coins","metaverse","tokens","nfts","market","bitcoin","community"]]};
+function returnToGroup(){selectedNode=null;nearestIds=null;applyFocus();showGroupPanel();}
+function showGroupPanel(){
+ if(!focusKeys.size){closeAuthorPanel();return;}
+ const members=nodes.filter(matchesFocus),centroid={};
+ for(let i=0;i<12;i++)centroid['t'+i]=members.reduce((s,n)=>s+(n['t'+i]||0),0)/Math.max(1,members.length);
+ const examples=members.map(n=>({n,s:cosineTopic(n,centroid)})).sort((a,b)=>b.s-a.s).slice(0,10);
+ const panel=document.getElementById('author-panel'),body=document.getElementById('author-panel-body');
+ panel.classList.add('group-details');body.replaceChildren();
+ const el=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls;if(text)e.textContent=text;return e;};
+ const header=el('header','gp-header');header.append(el('h2','gp-title',focusKind==='topic'?'Selected topics':'Selected communities'),el('p','gp-count',members.length.toLocaleString()+' authors · '+focusKeys.size+' '+(focusKind==='topic'?(focusKeys.size===1?'topic':'topics'):(focusKeys.size===1?'community':'communities'))));
+ const deselect=el('button','gp-link','Deselect');deselect.onclick=clearFocus;header.append(deselect);body.append(header);
+ const scroll=el('div','gp-scroll'),groups=el('ul','gp-groups');
+ for(const key of focusKeys){const name=focusKind==='topic'?(focusModel==='12'?baseTopicNames?.[key]:alternativeTopicLabels?.[key])||TOPIC_NAMES[key]||'No data':key==='tail'?'Other communities (combined)':communityLabel(Number(key));const item=el('li','',name);if(focusKind==='topic'&&TOPIC_TERMS[focusModel]?.[key]){item.append(el('p','gp-terms-label','Top 10 terms by topic weight'),el('p','gp-terms',TOPIC_TERMS[focusModel][key].slice(0,10).join(' · ')));}groups.append(item);}
+ scroll.append(groups);const section=el('section','gp-examples');section.append(el('h3','gp-section-title','Characteristic authors'));
+ examples.forEach(({n},i)=>{const card=el('article','gp-card');card.append(el('div','gp-author',anonymousMode?'Author '+(i+1):'Author '+n.id));if(focusKeys.size>1)card.append(el('p','gp-community',communityLabel(n.c)));const open=el('button','gp-link','Select author →');open.onclick=()=>showAuthorPanel(n);card.append(open);section.append(card);});
+ scroll.append(section);body.append(scroll);panel.classList.remove('hidden');document.getElementById('restore-details').hidden=true;
+}
 function minimiseDetails(){document.getElementById('author-panel').classList.add('hidden');document.getElementById('restore-details').hidden=false;}
 function restoreDetails(){document.getElementById('restore-details').hidden=true;document.getElementById('author-panel').classList.remove('hidden');}
 function minimiseControls(){const c=document.getElementById('controls');c.classList.toggle('minimised');document.getElementById('controls-toggle').textContent=c.classList.contains('minimised')?'›':'‹';}
