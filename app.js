@@ -719,7 +719,7 @@ function initWebGL() {
                 if(focusPass > 1.5){gl_FragColor=vec4(r>0.78?vec3(0.03):r>0.38?vec3(1.0):vColor,1.0);return;}
                 float alpha = 1.0 - smoothstep(0.5, 1.0, r);
                 gl_FragColor = focusPass>-0.5 && focusPass<0.5
-                    ?vec4(vec3(0.36,0.38,0.43),alpha*0.16):vec4(vColor,alpha);
+                    ?vec4(mix(vec3(dot(vColor,vec3(0.2126,0.7152,0.0722))),vColor,0.55)*0.60,alpha*0.80):vec4(vColor,alpha);
             }
         `,
         attributes: {
@@ -798,7 +798,7 @@ function initWebGL() {
                 float fog = 1.0 - smoothstep(fogNear, fogFar, vDepth);
                 float alpha = edge * mix(0.06, 0.56, fog);
                 gl_FragColor = focusPass>-0.5 && focusPass<0.5
-                    ?vec4(vec3(0.36,0.38,0.43),alpha*0.16):vec4(vColor,alpha);
+                    ?vec4(mix(vec3(dot(vColor,vec3(0.2126,0.7152,0.0722))),vColor,0.55)*0.60,alpha*0.80):vec4(vColor,alpha);
             }
         `,
         attributes: {
